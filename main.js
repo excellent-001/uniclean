@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // LIVE FEED FILTER LOGIC
+  // LIVE FEED FILTER LOGIC (only if cards exist)
   const cards = document.querySelectorAll(".uc-card");
   const statusButtons = document.querySelectorAll("[data-status-filter]");
   const categoryButtons = document.querySelectorAll("[data-category-filter]");
@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeCategory = "all";
 
   function applyFilters() {
+    if (!cards.length) return;
+
     cards.forEach((card) => {
       const cardStatus = card.getAttribute("data-status");
       const cardCategory = card.getAttribute("data-category");
@@ -17,35 +19,36 @@ document.addEventListener("DOMContentLoaded", () => {
       const categoryMatch =
         activeCategory === "all" || cardCategory === activeCategory;
 
-      if (statusMatch && categoryMatch) {
-        card.style.display = "";
-      } else {
-        card.style.display = "none";
-      }
+      card.style.display = statusMatch && categoryMatch ? "" : "none";
     });
   }
 
-  statusButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      activeStatus = btn.getAttribute("data-status-filter");
+  if (cards.length) {
+    statusButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeStatus = btn.getAttribute("data-status-filter");
 
-      statusButtons.forEach((b) => b.classList.remove("uc-chip-active"));
-      btn.classList.add("uc-chip-active");
+        statusButtons.forEach((b) => b.classList.remove("uc-chip-active"));
+        btn.classList.add("uc-chip-active");
 
-      applyFilters();
+        applyFilters();
+      });
     });
-  });
 
-  categoryButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      activeCategory = btn.getAttribute("data-category-filter");
+    categoryButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeCategory = btn.getAttribute("data-category-filter");
 
-      categoryButtons.forEach((b) => b.classList.remove("uc-chip-active"));
-      btn.classList.add("uc-chip-active");
+        categoryButtons.forEach((b) => b.classList.remove("uc-chip-active"));
+        btn.classList.add("uc-chip-active");
 
-      applyFilters();
+        applyFilters();
+      });
     });
-  });
+
+    // Initial filter to ensure everything visible on load
+    applyFilters();
+  }
 
   // MAP LOGIC (only runs on map.html)
   const mapEl = document.getElementById("map");
