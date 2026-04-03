@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniClean – Global Environmental Action Network</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="uc-header">
+    <div class="uc-logo">UniClean</div>
+    <nav class="uc-nav">
+      <a href="index.html">Home</a>
+      <a href="map.html">Global Map</a>
+      <a href="report.html">Post a Report</a>
+      <a href="chapters.html">Chapters</a>
+    </nav>
+  </header>
+
+  <main>
+<section class="uc-hero">
+  <div class="uc-hero-text">
+    <h1>Report pollution. Claim cleanups. Watch change happen.</h1>
+    <p>
+      UniClean is a global social platform where anyone can report environmental pollution,
+      anyone capable can claim the cleanup, and the whole world watches it get resolved —
+      one post at a time.
+    </p>
+    <a class="uc-btn-primary" href="report.html">Post a Report</a>
+    <a class="uc-btn-secondary" href="map.html">View Global Map</a>
+  </div>
+</section>
+
+<section class="uc-section">
+  <div class="uc-section-header">
+    <h2>Live Feed</h2>
+    <p>Sample reports from Manzini and Ilorin as we prepare to onboard real users.</p>
+  </div>
+
+  <div class="uc-filters">
+    <div class="uc-filter-group">
+      <span class="uc-filter-label">Status:</span>
+      <button class="uc-chip uc-chip-active">All</button>
+      <button class="uc-chip">Spotted</button>
+      <button class="uc-chip">Claimed</button>
+      <button class="uc-chip">In Progress</button>
+      <button class="uc-chip">Resolved</button>
+      <button class="uc-chip">Unclaimed</button>
+    </div>
+    <div class="uc-filter-group">
+      <span class="uc-filter-label">Category:</span>
+      <button class="uc-chip uc-chip-active">All</button>
+      <button class="uc-chip">Waste</button>
+      <button class="uc-chip">Water</button>
+      <button class="uc-chip">Air</button>
+      <button class="uc-chip">Land</button>
+    </div>
+  </div>
+
+  <div class="uc-feed">
+    <!-- Card 1 -->
+    <article class="uc-card uc-card-resolved">
+      <div class="uc-card-status">
+        <span>✅ Resolved</span>
+        <span class="uc-pill uc-pill-high">High</span>
+      </div>
+      <div class="uc-card-meta">
+        <span>Waste</span>
+        <span>•</span>
+        <span>Manzini, Eswatini</span>
+        <span>•</span>
+        <span>23 days ago</span>
+      </div>
+      <h3>Illegal dump site blocking storm drain</h3>
+      <p>
+        Large accumulation of plastic waste and household rubbish blocking the main
+        storm drain on Bypass Road. Risk of flooding during rains.
+      </p>
+      <p class="uc-card-detail">
+        Claimed by Manzini City Council.
+      </p>
+      <p class="uc-card-author">Reported by Mlandvo Mkhweli</p>
+      <div class="uc-card-actions">
+        <span>👍 47</span>
+        <span>💬 12</span>
+      </div>
+    </article>
+
+    <!-- Card 2 -->
+    <article class="uc-card uc-card-claimed">
+      <div class="uc-card-status">
+        <span>🙋 Claimed</span>
+        <span class="uc-pill uc-pill-medium">Medium</span>
+      </div>
+      <div class="uc-card-meta">
+        <span>Waste</span>
+        <span>•</span>
+        <span>Ilorin, Nigeria</span>
+        <span>•</span>
+        <span>15 days ago</span>
+      </div>
+      <h3>Campus waste overflow near engineering block</h3>
+      <p>
+        Overflowing waste bins near the Faculty of Engineering, University of Ilorin.
+        Bins have not been collected in over two weeks.
+      </p>
+      <p class="uc-card-detail">
+        Claimed by UniIlorin Green Society.
+      </p>
+      <p class="uc-card-author">Reported by Jagun Alabi</p>
+      <div class="uc-card-actions">
+        <span>👍 31</span>
+        <span>💬 8</span>
+      </div>
+    </article>
+
+    <!-- Card 3 -->
+    <article class="uc-card uc-card-unclaimed">
+      <div class="uc-card-status">
+        <span>⚠️ Unclaimed</span>
+        <span class="uc-pill uc-pill-critical">Critical</span>
+      </div>
+      <div class="uc-card-meta">
+        <span>Water</span>
+        <span>•</span>
+        <span>Manzini, Eswatini</span>
+        <span>•</span>
+        <span>13 days ago</span>
+      </div>
+      <h3>Polluted river stretch near Ngwane Park</h3>
+      <p>
+        Industrial discharge and plastic waste visible in the Lusushwana River near
+        Ngwane Park. Strong odour and discoloured water.
+      </p>
+      <p class="uc-card-detail">
+        Currently unclaimed.
+      </p>
+      <p class="uc-card-author">Reported by Community Member</p>
+      <div class="uc-card-actions">
+        <span>👍 89</span>
+        <span>💬 34</span>
+      </div>
+    </article>
+
+    <!-- Card 4 -->
+    <article class="uc-card uc-card-progress">
+      <div class="uc-card-status">
+        <span>🔧 In Progress</span>
+        <span class="uc-pill uc-pill-critical">Critical</span>
+      </div>
+      <div class="uc-card-meta">
+        <span>Air</span>
+        <span>•</span>
+        <span>Ilorin, Nigeria</span>
+        <span>•</span>
+        <span>11 days ago</span>
+      </div>
+      <h3>Open burning of electronic waste</h3>
+      <p>
+        Electronic waste being openly burned in a vacant lot, producing toxic smoke
+        affecting nearby residential areas.
+      </p>
+      <p class="uc-card-detail">
+        Claimed by Globally Green Nigeria.
+      </p>
+      <p class="uc-card-author">Reported by Fatima Olatunji</p>
+      <div class="uc-card-actions">
+        <span>👍 112</span>
+        <span>💬 41</span>
+      </div>
+    </article>
+
+    <!-- Card 5 -->
+    <article class="uc-card uc-card-spotted">
+      <div class="uc-card-status">
+        <span>📍 Spotted</span>
+        <span class="uc-pill uc-pill-medium">Medium</span>
+      </div>
+      <div class="uc-card-meta">
+        <span>Land</span>
+        <span>•</span>
+        <span>Manzini, Eswatini</span>
+        <span>•</span>
+        <span>8 days ago</span>
+      </div>
+      <h3>Erosion and waste on hillside footpath</h3>
+      <p>
+        Significant erosion combined with dumped construction waste on the hillside path
+        near Malkerns junction. Path is becoming unusable.
+      </p>
+      <p class="uc-card-detail">
+        Currently unclaimed.
+      </p>
+      <p class="uc-card-author">Reported by Sibusiso Dlamini</p>
+      <div class="uc-card-actions">
+        <span>👍 23</span>
+        <span>💬 5</span>
+      </div>
+    </article>
+
+    <!-- Card 6 -->
+    <article class="uc-card uc-card-resolved">
+      <div class="uc-card-status">
+        <span>✅ Resolved</span>
+        <span class="uc-pill uc-pill-high">High</span>
+      </div>
+      <div class="uc-card-meta">
+        <span>Water</span>
+        <span>•</span>
+        <span>Ilorin, Nigeria</span>
+        <span>•</span>
+        <span>33 days ago</span>
+      </div>
+      <h3>Plastic debris on Tanke riverbank</h3>
+      <p>
+        Heavy accumulation of plastic bags and bottles along the Asa River bank near
+        Tanke. Community children play here daily.
+      </p>
+      <p class="uc-card-detail">
+        Claimed by UniIlorin Green Society.
+      </p>
+      <p class="uc-card-author">Reported by Rasheed Abdullahi</p>
+      <div class="uc-card-actions">
+        <span>👍 156</span>
+        <span>💬 27</span>
+      </div>
+    </article>
+  </div>
+</section>  </main>
+
+  <footer class="uc-footer">
+    <p>© 2026 UniClean. United. Universal. Unstoppable.</p>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
