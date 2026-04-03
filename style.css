@@ -5,9 +5,16 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* Base */
+
 body {
-  background: #f0fdf4; /* very light green */
-  color: #022c22;      /* dark teal text */
+  background: #edf7f3; /* soft climate-tech background */
+  color: #022c22;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 /* Header */
@@ -16,44 +23,56 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 5vw;
-  border-bottom: 1px solid #16a34a;
+  padding: 1.1rem 6vw;
+  border-bottom: 1px solid #0f766e;
   position: sticky;
   top: 0;
   z-index: 50;
   backdrop-filter: blur(10px);
-  background: #16a34a; /* strong green */
+  background: rgba(15, 118, 110, 0.96); /* deep teal-green */
 }
 
 .uc-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #ecfdf5; /* almost white */
+  color: #ecfdf5;
 }
 
 .uc-nav a {
-  margin-left: 1.25rem;
+  margin-left: 1.5rem;
   font-size: 0.95rem;
-  color: #ecfdf5;
+  color: #e0f2f1;
 }
 
 .uc-nav a:hover {
   color: #bbf7d0;
 }
+
 /* Hero */
 
 .uc-hero {
-  padding: 3rem 5vw 2rem;
-  background: #ecfdf5; /* white-ish center */
+  padding: 3rem 6vw 2.5rem;
+  background: #f9fafb;
+}
+
+.uc-hero-text {
+  max-width: 720px;
 }
 
 .uc-hero h1 {
+  font-size: clamp(2.1rem, 3.1vw, 2.8rem);
+  margin-bottom: 1rem;
   color: #022c22;
 }
 
 .uc-hero p {
   color: #065f46;
+  margin-bottom: 1.7rem;
+  line-height: 1.6;
 }
 
 /* Buttons */
@@ -61,10 +80,12 @@ body {
 .uc-btn-primary,
 .uc-btn-secondary {
   display: inline-block;
-  padding: 0.75rem 1.5rem;
+  padding: 0.8rem 1.7rem;
   border-radius: 999px;
   font-size: 0.95rem;
   margin-right: 0.75rem;
+  border: none;
+  cursor: pointer;
 }
 
 .uc-btn-primary {
@@ -77,27 +98,28 @@ body {
   border: 1px solid #16a34a;
   color: #065f46;
   background: #f0fdf4;
-  
 }
 
 /* Sections */
 
 .uc-section {
-  padding: 1rem 5vw 3rem;
+  padding: 2.2rem 6vw 3rem;
+  background: #edf7f3;
 }
 
 .uc-section-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.7rem;
 }
 
 .uc-section-header h2 {
   font-size: 1.4rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
+  color: #064e3b;
 }
 
 .uc-section-header p {
-  color: #9ca3af;
-  font-size: 0.95rem;
+  color: #047857;
+  font-size: 0.96rem;
 }
 
 /* Filters */
@@ -106,7 +128,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.7rem;
   align-items: center;
 }
 
@@ -118,8 +140,8 @@ body {
 }
 
 .uc-filter-label {
-  font-size: 0.85rem;
-  color: #9ca3af;
+  font-size: 0.82rem;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -127,16 +149,16 @@ body {
 .uc-chip {
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.7);
-  padding: 0.35rem 0.8rem;
+  padding: 0.35rem 0.85rem;
   font-size: 0.8rem;
-  background: transparent;
-  color: #e5e7eb;
+  background: #f9fafb;
+  color: #065f46;
   cursor: pointer;
 }
 
 .uc-chip-active {
-  border-color: #22c55e;
-  background: rgba(34, 197, 94, 0.12);
+  border-color: #16a34a;
+  background: #dcfce7;
 }
 
 /* Feed cards */
@@ -144,15 +166,15 @@ body {
 .uc-feed {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
+  gap: 1.1rem;
 }
 
 .uc-card {
   background: #ffffff;
   border-radius: 1rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid #bbf7d0;
-  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.08);
+  padding: 1rem 1.15rem;
+  border: 1px solid #d1fae5;
+  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.08);
 }
 
 .uc-card-status {
@@ -160,45 +182,47 @@ body {
   justify-content: space-between;
   align-items: center;
   font-size: 0.8rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.45rem;
 }
 
 .uc-card-meta {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: #6b7280;
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.55rem;
 }
 
 .uc-card h3 {
   font-size: 1.02rem;
   margin-bottom: 0.35rem;
+  color: #022c22;
 }
 
 .uc-card p {
   font-size: 0.9rem;
   color: #064e3b;
+  line-height: 1.5;
 }
 
 .uc-card-detail {
   margin-top: 0.25rem;
-  color: #cbd5f5;
+  color: #047857;
 }
 
 .uc-card-author {
-  margin-top: 0.4rem;
+  margin-top: 0.45rem;
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .uc-card-actions {
-  margin-top: 0.55rem;
+  margin-top: 0.6rem;
   display: flex;
   gap: 1rem;
   font-size: 0.85rem;
- color: #6b7280;
+  color: #6b7280;
 }
 
 /* Pills (severity) */
@@ -213,17 +237,20 @@ body {
 
 .uc-pill-high {
   border: 1px solid rgba(249, 115, 22, 0.9);
-  color: #fed7aa;
+  color: #c05621;
+  background: #fffbeb;
 }
 
 .uc-pill-medium {
   border: 1px solid rgba(234, 179, 8, 0.9);
-  color: #facc15;
+  color: #92400e;
+  background: #fef9c3;
 }
 
 .uc-pill-critical {
   border: 1px solid rgba(248, 113, 113, 0.95);
-  color: #fecaca;
+  color: #b91c1c;
+  background: #fee2e2;
 }
 
 /* Report list (map page) */
@@ -233,24 +260,22 @@ body {
   display: grid;
   gap: 0.75rem;
   font-size: 0.9rem;
-  color: #e5e7eb;
+  color: #064e3b;
+}
+
+.uc-report-list li {
+  background: #ffffff;
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #d1fae5;
 }
 
 .uc-report-list li strong {
   font-size: 0.95rem;
 }
 
-/* Footer */
+/* Lifecycle section */
 
-.uc-footer {
-  border-top: 1px solid rgba(148, 163, 184, 0.4);
-  padding: 1rem 5vw 1.5rem;
-  margin-top: 2rem;
-  font-size: 0.85rem;
-  color: #9ca3af;
-}
-
-/* Responsive */
 .uc-lifecycle {
   display: flex;
   flex-wrap: wrap;
@@ -259,10 +284,10 @@ body {
 }
 
 .uc-step {
-  background: rgba(15, 23, 42, 0.9);
+  background: #ffffff;
   border-radius: 0.9rem;
   padding: 0.9rem 1rem;
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  border: 1px solid #d1fae5;
   min-width: 150px;
   flex: 1 1 160px;
 }
@@ -276,31 +301,34 @@ body {
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #bbf7d0;
+  color: #047857;
   margin-bottom: 0.25rem;
 }
 
 .uc-step p {
   font-size: 0.85rem;
-  color: #e5e7eb;
+  color: #065f46;
 }
 
 .uc-step-arrow {
   font-size: 1.4rem;
-  color: #86efac;
+  color: #16a34a;
 }
+
+/* Footer */
+
+.uc-footer {
+  border-top: 1px solid #0f766e;
+  padding: 1rem 6vw 1.5rem;
+  font-size: 0.85rem;
+  color: #e0f2f1;
+  background: #0f766e;
+  margin-top: 0;
+}
+
+/* Responsive */
 
 @media (max-width: 768px) {
-  .uc-lifecycle {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .uc-step-arrow {
-    text-align: center;
-  }
-}
-@media (max-width: 640px) {
   .uc-header {
     flex-direction: column;
     align-items: flex-start;
@@ -310,5 +338,14 @@ body {
   .uc-nav a {
     margin-left: 0;
     margin-right: 0.75rem;
+  }
+
+  .uc-lifecycle {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .uc-step-arrow {
+    text-align: center;
   }
 }
