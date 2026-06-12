@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>UniClean — Report. Map. Resolve.</title>
+<meta name="description" content="Report environmental issues in your community. No account needed."/>
+<meta name="theme-color" content="#0a1a0f"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a1a0f; --surface:#111f14; --surface2:#172b1c; --surface3:#1e3524;
+  --border:#1e3524; --border2:#2a4a32;
+  --green:#1a5c2a; --leaf:#2d8c42; --sprout:#4caf6a; --mint:#a8d5b5; --pale:#e8f5ec;
+  --text:#c8dece; --muted:#6b9478; --dim:#3d6347;
+  --red:#c0392b; --amber:#d4820a; --gold:#e6b800; --blue:#1a4a7a;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;--rF:999px;
+  --t:.18s ease;
+}
+html{-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit;}
+input,textarea,select{font-family:inherit;}
+img{max-width:100%;display:block;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--leaf);border-radius:3px;}
+
+.container{max-width:680px;margin:0 auto;padding:0 16px;}
+.page{display:none;}
+.page.active{display:block;}
+main{padding:16px 0 90px;}
+
+/* HEADER */
+#hdr{position:sticky;top:0;z-index:300;background:rgba(10,26,15,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:58px;display:flex;align-items:center;}
+#hdr .container{display:flex;align-items:center;justify-content:space-between;width:100%;}
+.logo-wrap{display:flex;align-items:center;gap:10px;cursor:pointer;}
+.logo-name{font-family:'Fraunces',serif;font-size:22px;font-weight:900;color:var(--pale);letter-spacing:-.5px;}
+.logo-name span{color:var(--sprout);}
+.logo-sub{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:2px;margin-top:1px;}
+.btn-report-hdr{background:var(--red);color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.8px;padding:9px 16px;border-radius:var(--rF);display:flex;align-items:center;gap:6px;transition:opacity var(--t);}
+.btn-report-hdr:hover{opacity:.85;}
+.db-badge{background:rgba(230,184,0,.15);border:1px solid rgba(230,184,0,.4);color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:var(--rF);}
+
+/* NAV */
+#nav{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:58px;z-index:290;overflow-x:auto;scrollbar-width:none;}
+#nav::-webkit-scrollbar{display:none;}
+#nav .container{display:flex;}
+.nb{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.5px;color:var(--muted);padding:13px 16px;white-space:nowrap;border-bottom:2px solid transparent;transition:all var(--t);display:flex;align-items:center;gap:6px;}
+.nb:hover{color:var(--text);}
+.nb.on{color:var(--sprout);border-bottom-color:var(--sprout);}
+
+/* BOTTOM NAV */
+#bnav{position:fixed;bottom:0;left:0;right:0;z-index:300;background:rgba(10,26,15,.97);border-top:1px solid var(--border);display:flex;align-items:center;height:62px;padding:0 8px;}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.5px;color:var(--dim);transition:color var(--t);}
+.bn.on{color:var(--sprout);}
+.bni{font-size:20px;line-height:1;}
+.bn-post{flex:0 0 56px;height:56px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 6px;box-shadow:0 4px 16px rgba(192,57,43,.4);transition:transform var(--t);}
+.bn-post:active{transform:scale(.92);}
+
+/* BUTTONS */
+.btn-primary{background:var(--leaf);color:#fff;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.5px;padding:14px;border-radius:var(--r12);width:100%;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-primary:active{opacity:.8;}
+.btn-secondary{background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:14px;border-radius:var(--r12);width:100%;border:1px solid var(--border2);transition:all var(--t);}
+.btn-secondary:active{opacity:.8;}
+.btn-danger{background:rgba(192,57,43,.15);color:#e57373;font-family:'DM Mono',monospace;font-size:12px;padding:8px 14px;border-radius:var(--r8);border:1px solid rgba(192,57,43,.3);transition:all var(--t);}
+.btn-danger:hover{background:rgba(192,57,43,.25);}
+.btn-sm{font-family:'DM Mono',monospace;font-size:10px;padding:6px 12px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);transition:all var(--t);}
+.btn-sm:hover{color:var(--sprout);border-color:var(--sprout);}
+.btn-sm.active{background:var(--green);color:var(--mint);border-color:var(--leaf);}
+
+/* FORMS */
+.fg{margin-bottom:14px;}
+.fl{font-family:'DM Mono',monospace;font-size:10px;color:var(--sprout);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;display:block;}
+.fi{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r12);color:var(--pale);font-size:14px;outline:none;transition:border-color var(--t);}
+.fi::placeholder{color:var(--dim);}
+.fi:focus{border-color:var(--leaf);}
+.fta{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r12);color:var(--pale);font-size:14px;line-height:1.6;resize:vertical;min-height:100px;outline:none;transition:border-color var(--t);}
+.fta::placeholder{color:var(--dim);}
+.fta:focus{border-color:var(--leaf);}
+.fhint{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px;}
+
+/* OPTION CHIPS */
+.opts{display:flex;flex-wrap:wrap;gap:7px;}
+.opt{font-family:'DM Mono',monospace;font-size:11px;padding:7px 13px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);background:var(--surface2);transition:all var(--t);cursor:pointer;}
+.opt.sel{background:var(--green);color:var(--mint);border-color:var(--leaf);}
+
+/* PHOTO ZONE */
+.photo-zone{position:relative;border:2px dashed var(--border2);border-radius:var(--r16);overflow:hidden;min-height:140px;display:flex;align-items:center;justify-content:center;transition:border-color var(--t);cursor:pointer;}
+.photo-zone:hover{border-color:var(--leaf);}
+.photo-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-placeholder{text-align:center;pointer-events:none;}
+.photo-placeholder .ic{font-size:36px;margin-bottom:8px;}
+.photo-placeholder .pt{font-family:'DM Mono',monospace;font-size:12px;color:var(--sprout);}
+.photo-placeholder .ps{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;}
+.photo-preview{width:100%;height:200px;object-fit:cover;display:none;border-radius:14px;}
+
+/* LOC BAR */
+.loc-bar{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r12);margin-top:8px;}
+.loc-text{flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+.loc-text.captured{color:var(--sprout);}
+
+/* SEC LABEL */
+.sec-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--sprout);letter-spacing:2px;text-transform:uppercase;margin:20px 0 12px;display:flex;align-items:center;gap:10px;}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* FEED CARDS */
+.feed{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.rcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;cursor:pointer;transition:all var(--t);position:relative;}
+.rcard:hover{border-color:var(--border2);transform:translateY(-1px);}
+.rcard-img{width:100%;height:160px;object-fit:cover;background:var(--surface2);}
+.rcard-img-ph{width:100%;height:100px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:30px;}
+.rcard-body{padding:14px;}
+.rcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.cat-badge{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:3px 10px;border-radius:var(--rF);}
+.cat-Litter{background:rgba(212,130,10,.12);color:#f0a832;border:1px solid rgba(212,130,10,.3);}
+.cat-Dumping{background:rgba(192,57,43,.12);color:#e57373;border:1px solid rgba(192,57,43,.3);}
+.cat-Bin{background:rgba(74,108,50,.2);color:var(--mint);border:1px solid rgba(74,108,50,.4);}
+.cat-Burning{background:rgba(180,50,10,.12);color:#ff8a65;border:1px solid rgba(180,50,10,.3);}
+.cat-Water{background:rgba(26,74,122,.2);color:#90caf9;border:1px solid rgba(26,74,122,.4);}
+.cat-Drainage{background:rgba(50,90,130,.15);color:#80deea;border:1px solid rgba(50,90,130,.3);}
+.cat-Other{background:rgba(80,80,80,.15);color:#b0bec5;border:1px solid rgba(80,80,80,.3);}
+.rcard-desc{font-size:14px;color:var(--text);line-height:1.55;margin-bottom:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.rcard-meta{display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.rcard-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;}
+.sync-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;}
+.synced{background:var(--sprout);}
+.local{background:var(--amber);}
+
+/* HERO */
+.feed-hero{background:linear-gradient(135deg,#071a0c,#0d2a14);border:1px solid var(--border);border-radius:var(--r20);padding:22px 20px;margin-bottom:16px;}
+.feed-hero h1{font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:var(--pale);line-height:1.25;margin-bottom:6px;}
+.feed-hero h1 em{color:var(--sprout);font-style:normal;}
+.feed-hero p{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:16px;}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.stat-box{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--r12);padding:12px 8px;text-align:center;}
+.stat-num{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--pale);line-height:1;}
+.stat-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.5px;margin-top:3px;}
+
+/* FILTER */
+.filter-row{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;}
+.filter-row::-webkit-scrollbar{display:none;}
+.chip{font-family:'DM Mono',monospace;font-size:10px;padding:6px 13px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);background:var(--surface);white-space:nowrap;cursor:pointer;transition:all var(--t);}
+.chip.on{background:var(--green);color:var(--mint);border-color:var(--leaf);}
+
+/* MAP */
+#map-c{height:420px;border-radius:var(--r16);border:1px solid var(--border);overflow:hidden;margin-bottom:14px;}
+.map-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.map-leg-item{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.map-dot{width:8px;height:8px;border-radius:50%;}
+
+/* MODAL */
+.mo{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s ease;}
+.mo.open{opacity:1;pointer-events:all;}
+.ms{background:var(--surface);border-radius:var(--r20) var(--r20) 0 0;width:100%;max-height:93vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.15,1);}
+.mo.open .ms{transform:translateY(0);}
+.mhandle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0;}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;}
+.mhdr-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--pale);}
+.mcl{width:30px;height:30px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);}
+.mc{padding:0 18px 24px;}
+
+/* DETAIL */
+.det-img{width:100%;max-height:260px;object-fit:cover;border-radius:var(--r12);margin-bottom:14px;}
+.det-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--pale);margin-bottom:6px;}
+.det-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.det-meta-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r12);padding:10px 12px;}
+.det-meta-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:3px;}
+.det-meta-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--pale);}
+.det-desc{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:14px;}
+
+/* SUCCESS */
+.suc{text-align:center;padding:32px 16px;}
+.suc-ic{font-size:56px;margin-bottom:12px;}
+.suc-t{font-family:'Fraunces',serif;font-size:22px;font-weight:900;color:var(--pale);margin-bottom:8px;}
+.suc-s{font-family:'Fraunces',serif;font-style:italic;font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:22px;}
+
+/* STEP INDICATOR */
+.step-indicator{display:flex;align-items:center;gap:0;margin-bottom:20px;}
+.step-dot{width:28px;height:28px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0;transition:all var(--t);}
+.step-dot.done{background:var(--green);border-color:var(--leaf);color:var(--mint);}
+.step-dot.active{background:var(--leaf);border-color:var(--sprout);color:#fff;}
+.step-line{flex:1;height:2px;background:var(--border);}
+.step-line.done{background:var(--leaf);}
+
+/* QR */
+.qr-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r20);padding:24px;text-align:center;margin-bottom:14px;}
+#qr-canvas{display:inline-block;padding:12px;background:#fff;border-radius:var(--r12);margin:16px auto;}
+.qr-url{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);word-break:break-all;margin-top:10px;}
+
+/* EXPORT */
+.export-row{display:flex;gap:10px;margin-top:14px;}
+.btn-export{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:12px;border-radius:var(--r12);transition:all var(--t);}
+.btn-export:hover{border-color:var(--sprout);color:var(--sprout);}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;}
+.empty-ic{font-size:40px;margin-bottom:10px;}
+.empty-t{font-family:'Fraunces',serif;font-size:16px;color:var(--pale);margin-bottom:5px;}
+.empty-s{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
+
+/* TOAST */
+#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--surface);border:1px solid var(--leaf);border-radius:var(--rF);padding:10px 20px;font-family:'DM Mono',monospace;font-size:12px;color:var(--sprout);z-index:900;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;max-width:90vw;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.error{border-color:var(--red);color:#e57373;}
+
+/* INFO BLOCKS */
+.info-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);padding:18px;margin-bottom:12px;}
+.info-block h3{font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:var(--pale);margin-bottom:8px;}
+.info-block p{font-size:13px;color:var(--muted);line-height:1.7;}
+.info-block ul{font-size:13px;color:var(--muted);line-height:1.8;padding-left:18px;}
+
+/* ══ ADMIN ══ */
+#admin-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 20px;text-align:center;}
+.admin-locked-ic{font-size:48px;margin-bottom:14px;}
+.admin-locked-t{font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:var(--pale);margin-bottom:6px;}
+.admin-locked-s{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:20px;line-height:1.7;}
+#admin-pw-input{text-align:center;letter-spacing:3px;font-size:18px;max-width:220px;}
+.admin-dashboard{display:none;}
+.admin-stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
+.admin-stat{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r16);padding:16px;}
+.admin-stat-num{font-family:'Fraunces',serif;font-size:28px;font-weight:900;color:var(--pale);}
+.admin-stat-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:2px;}
+.admin-stat-sub{font-family:'DM Mono',monospace;font-size:10px;margin-top:4px;}
+.admin-table{width:100%;border-collapse:collapse;margin-top:10px;}
+.admin-table th{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.admin-table td{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);padding:10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.admin-table tr:hover td{background:var(--surface2);}
+.status-badge{font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:var(--rF);cursor:pointer;}
+.status-Open{background:rgba(192,57,43,.15);color:#e57373;border:1px solid rgba(192,57,43,.3);}
+.status-Progress{background:rgba(212,130,10,.15);color:#f0a832;border:1px solid rgba(212,130,10,.3);}
+.status-Resolved{background:rgba(45,140,66,.15);color:var(--sprout);border:1px solid rgba(45,140,66,.3);}
+.admin-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);padding:0;margin-bottom:14px;overflow:hidden;}
+.admin-section-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.admin-section-title{font-family:'DM Mono',monospace;font-size:11px;color:var(--sprout);letter-spacing:1px;}
+.admin-map{height:300px;border-radius:0 0 var(--r16) var(--r16);overflow:hidden;}
+.db-status{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;}
+.db-dot{width:7px;height:7px;border-radius:50%;}
+.db-dot.connected{background:var(--sprout);}
+.db-dot.disconnected{background:var(--amber);}
+.db-dot.error{background:var(--red);}
+
+/* SETUP BANNER */
+.setup-banner{background:rgba(230,184,0,.08);border:1px solid rgba(230,184,0,.3);border-radius:var(--r12);padding:14px 16px;margin-bottom:16px;display:none;}
+.setup-banner.show{display:block;}
+.setup-banner-t{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:.5px;margin-bottom:5px;}
+.setup-banner-s{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.7;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SUPABASE CONFIG ═══════════ -->
+<!-- STEP 1: Replace these two values with your Supabase project details -->
+<script>
+const SUPABASE_URL = 'https://kldnnyheztqsourrxlkz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsZG5ueWhlenRxc291cnJ4bGt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTcwNDksImV4cCI6MjA5NjgzMzA0OX0.7ild3o38iCx-fYcEIRWnIMqnFt-3nzg70aR9Ke-tAkk';
+const ADMIN_PASSWORD = 'UniClean@2026!';
+const IS_CONFIGURED = SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+</script>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header id="hdr">
+  <div class="container">
+    <div class="logo-wrap" onclick="showPage('feed')">
+      <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
+        <path d="M14 1C8 1 3 6 3 12c0 8 11 20 11 20S25 20 25 12C25 6 20 1 14 1z" fill="#2d8c42"/>
+        <circle cx="14" cy="12" r="6" fill="none" stroke="#a8d5b5" stroke-width="1.5"/>
+        <circle cx="14" cy="12" r="2.5" fill="#a8d5b5"/>
+      </svg>
+      <div>
+        <div class="logo-name">Uni<span>Clean</span></div>
+        <div class="logo-sub">BY RE-VERSAL</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="db-status-hdr" class="db-status" style="display:none;">
+        <div class="db-dot" id="db-dot"></div>
+        <span id="db-status-txt"></span>
+      </div>
+      <button class="btn-report-hdr" onclick="openReport()">🔴 Report</button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav id="nav">
+  <div class="container">
+    <button class="nb on" data-p="feed" onclick="showPage('feed',this)">📋 Feed</button>
+    <button class="nb" data-p="map" onclick="showPage('map',this)">🗺️ Map</button>
+    <button class="nb" data-p="qr" onclick="showPage('qr',this)">📱 QR Code</button>
+    <button class="nb" data-p="export" onclick="showPage('export',this)">📤 Export</button>
+    <button class="nb" data-p="admin" onclick="showPage('admin',this)">🔒 Admin</button>
+    <button class="nb" data-p="about" onclick="showPage('about',this)">ℹ️ About</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ═══ FEED ═══ -->
+<div id="page-feed" class="page active">
+  <div class="container">
+    <div class="setup-banner" id="setup-banner">
+      <div class="setup-banner-t">⚙️ SETUP REQUIRED</div>
+      <div class="setup-banner-s">Supabase is not yet connected. Reports are saving locally only. Go to Admin → Setup to connect your database.</div>
+    </div>
+    <div class="feed-hero">
+      <h1>Report. Map. <em>Resolve.</em></h1>
+      <p>Spot an environmental issue? Document it in seconds. No account needed — just your eyes and your phone.</p>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">REPORTS</div></div>
+        <div class="stat-box"><div class="stat-num" id="s-today">0</div><div class="stat-lbl">TODAY</div></div>
+        <div class="stat-box"><div class="stat-num" id="s-locs">0</div><div class="stat-lbl">LOCATIONS</div></div>
+      </div>
+    </div>
+    <div class="filter-row" id="filter-row">
+      <button class="chip on" onclick="filterFeed('All',this)">All</button>
+      <button class="chip" onclick="filterFeed('Litter',this)">🗑 Litter</button>
+      <button class="chip" onclick="filterFeed('Dumping',this)">⚠️ Illegal Dumping</button>
+      <button class="chip" onclick="filterFeed('Bin',this)">🪣 Overflow Bin</button>
+      <button class="chip" onclick="filterFeed('Burning',this)">🔥 Waste Burning</button>
+      <button class="chip" onclick="filterFeed('Water',this)">💧 Water Pollution</button>
+      <button class="chip" onclick="filterFeed('Drainage',this)">🚧 Blocked Drainage</button>
+      <button class="chip" onclick="filterFeed('Other',this)">📌 Other</button>
+    </div>
+    <div class="feed" id="feed-list">
+      <div class="empty"><div class="empty-ic">🌍</div><div class="empty-t">No reports yet</div><div class="empty-s">Be the first to report an issue in your community.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAP ═══ -->
+<div id="page-map" class="page">
+  <div class="container">
+    <div class="sec-label">Community Map</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="map-filters">
+      <button class="chip on" onclick="filterMap('All',this)">All Reports</button>
+      <button class="chip" onclick="filterMap('Litter',this)">🗑 Litter</button>
+      <button class="chip" onclick="filterMap('Dumping',this)">⚠️ Dumping</button>
+      <button class="chip" onclick="filterMap('Water',this)">💧 Water</button>
+      <button class="chip" onclick="filterMap('Other',this)">📌 Other</button>
+    </div>
+    <div id="map-c"></div>
+    <div class="map-legend">
+      <div class="map-leg-item"><div class="map-dot" style="background:#d4820a"></div>Litter</div>
+      <div class="map-leg-item"><div class="map-dot" style="background:#c0392b"></div>Dumping</div>
+      <div class="map-leg-item"><div class="map-dot" style="background:#1a4a7a"></div>Water</div>
+      <div class="map-leg-item"><div class="map-dot" style="background:#2d8c42"></div>Other</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ QR ═══ -->
+<div id="page-qr" class="page">
+  <div class="container">
+    <div class="sec-label">QR Code Access</div>
+    <div class="qr-card">
+      <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--pale);margin-bottom:4px">Scan to Report</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">Share at events, schools, and public spaces. Anyone can scan and report — no app, no registration.</div>
+      <div id="qr-canvas"></div>
+      <div class="qr-url" id="qr-url-text"></div>
+    </div>
+    <button class="btn-primary" onclick="downloadQR()">⬇️ Download QR Code</button>
+    <div class="info-block" style="margin-top:14px">
+      <h3>How to use</h3>
+      <ul>
+        <li>Print and post at community centres, schools, markets, or campaigns</li>
+        <li>Residents scan with any phone camera — no app needed</li>
+        <li>They're taken directly to the reporting page</li>
+        <li>Reports appear on the public map instantly</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EXPORT ═══ -->
+<div id="page-export" class="page">
+  <div class="container">
+    <div class="sec-label">Data Export</div>
+    <div class="info-block">
+      <h3>Export All Reports</h3>
+      <p>Download all submitted reports for municipal reporting, grant applications, or environmental monitoring.</p>
+      <div class="export-row">
+        <button class="btn-export" onclick="exportCSV()">📄 Export CSV</button>
+        <button class="btn-export" onclick="exportExcel()">📊 Export Excel</button>
+      </div>
+    </div>
+    <div class="info-block">
+      <h3>Fields included</h3>
+      <ul>
+        <li>Report ID · Date & Time · Category · Description</li>
+        <li>GPS Coordinates (Latitude, Longitude)</li>
+        <li>Location Source · Status · Photo URL</li>
+      </ul>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:8px;" id="export-count"></div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div id="page-admin" class="page">
+  <div class="container">
+
+    <!-- Gate -->
+    <div id="admin-gate">
+      <div class="admin-locked-ic">🔒</div>
+      <div class="admin-locked-t">Admin Dashboard</div>
+      <div class="admin-locked-s">Enter your admin password to access reports,<br>manage submissions, and monitor the platform.</div>
+      <div class="fg" style="width:100%;max-width:280px;">
+        <input class="fi" id="admin-pw-input" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')checkAdminPw()"/>
+      </div>
+      <button class="btn-primary" style="max-width:280px;margin-top:8px;" onclick="checkAdminPw()">Unlock Dashboard →</button>
+    </div>
+
+    <!-- Dashboard (hidden until unlocked) -->
+    <div class="admin-dashboard" id="admin-dashboard">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:var(--pale);">📊 Dashboard</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="db-status" id="admin-db-status">
+            <div class="db-dot" id="admin-db-dot"></div>
+            <span id="admin-db-txt" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);"></span>
+          </div>
+          <button class="btn-sm" onclick="lockAdmin()">🔒 Lock</button>
+          <button class="btn-sm" onclick="loadAllReports()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="admin-stat-grid" id="admin-stats">
+        <div class="admin-stat"><div class="admin-stat-num" id="adm-total">0</div><div class="admin-stat-lbl">TOTAL REPORTS</div></div>
+        <div class="admin-stat"><div class="admin-stat-num" id="adm-today">0</div><div class="admin-stat-lbl">TODAY</div></div>
+        <div class="admin-stat"><div class="admin-stat-num" id="adm-open">0</div><div class="admin-stat-lbl">OPEN</div><div class="admin-stat-sub" style="color:var(--red)">Need attention</div></div>
+        <div class="admin-stat"><div class="admin-stat-num" id="adm-resolved">0</div><div class="admin-stat-lbl">RESOLVED</div><div class="admin-stat-sub" style="color:var(--sprout)">Cleaned up</div></div>
+      </div>
+
+      <!-- Category breakdown -->
+      <div class="admin-section" style="margin-bottom:14px;">
+        <div class="admin-section-hdr">
+          <div class="admin-section-title">BY CATEGORY</div>
+        </div>
+        <div style="padding:12px 16px;" id="admin-cats"></div>
+      </div>
+
+      <!-- Map -->
+      <div class="admin-section" style="margin-bottom:14px;">
+        <div class="admin-section-hdr">
+          <div class="admin-section-title">ALL REPORTS MAP</div>
+          <div id="admin-map-count" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);"></div>
+        </div>
+        <div id="admin-map-c" class="admin-map"></div>
+      </div>
+
+      <!-- Reports table -->
+      <div class="admin-section">
+        <div class="admin-section-hdr">
+          <div class="admin-section-title">ALL REPORTS</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-sm" id="adm-f-all" onclick="admFilter('all')" style="background:var(--green);color:var(--mint);border-color:var(--leaf)">All</button>
+            <button class="btn-sm" id="adm-f-open" onclick="admFilter('open')">Open</button>
+            <button class="btn-sm" id="adm-f-res" onclick="admFilter('resolved')">Resolved</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table" id="admin-table">
+            <thead>
+              <tr>
+                <th>PHOTO</th><th>CATEGORY</th><th>DESCRIPTION</th><th>LOCATION</th><th>DATE</th><th>STATUS</th><th>ACT</th>
+              </tr>
+            </thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Setup section -->
+      <div class="info-block" style="margin-top:14px;" id="admin-setup-section">
+        <h3>⚙️ Supabase Setup</h3>
+        <p id="admin-setup-status" style="margin-bottom:10px;"></p>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8;">
+          1. Create free account at <strong style="color:var(--pale)">supabase.com</strong><br>
+          2. Create a new project<br>
+          3. Go to Settings → API → copy Project URL and anon key<br>
+          4. Open <strong style="color:var(--pale)">uniclean_v6.html</strong> in a text editor<br>
+          5. Replace <strong style="color:var(--gold)">YOUR_SUPABASE_URL</strong> and <strong style="color:var(--gold)">YOUR_SUPABASE_ANON_KEY</strong> at the top of the file<br>
+          6. Run the SQL below in your Supabase SQL Editor to create the table
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--r8);padding:12px;margin-top:10px;overflow-x:auto;">
+          <pre style="font-family:'DM Mono',monospace;font-size:10px;color:var(--sprout);line-height:1.7;white-space:pre-wrap;">CREATE TABLE reports (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  category TEXT NOT NULL,
+  description TEXT,
+  photo_url TEXT,
+  video_name TEXT,
+  latitude FLOAT,
+  longitude FLOAT,
+  coordinates TEXT,
+  location_source TEXT,
+  status TEXT DEFAULT 'Open',
+  date_str TEXT,
+  time_str TEXT
+);
+-- Allow public inserts (no login required)
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can insert" ON reports FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public can read" ON reports FOR SELECT USING (true);
+CREATE POLICY "Public can update status" ON reports FOR UPDATE USING (true);</pre>
+        </div>
+        <button class="btn-sm" style="margin-top:10px;width:100%" onclick="copySQL()">📋 Copy SQL</button>
+      </div>
+
+    </div><!-- /admin-dashboard -->
+  </div>
+</div>
+
+<!-- ═══ ABOUT ═══ -->
+<div id="page-about" class="page">
+  <div class="container">
+    <div class="sec-label">About UniClean</div>
+    <div class="info-block">
+      <h3>What is UniClean?</h3>
+      <p>UniClean is a community environmental reporting platform. Citizens document pollution, illegal dumping, and environmental damage. Reports are pinned on a live public map — creating visibility, accountability, and action.</p>
+    </div>
+    <div class="info-block">
+      <h3>How it works</h3>
+      <ul>
+        <li>Tap <strong style="color:var(--pale)">Report</strong> — no login needed</li>
+        <li>Take or upload a photo of the issue</li>
+        <li>Select category and write a short description</li>
+        <li>GPS coordinates captured automatically</li>
+        <li>Report goes live on the public map instantly</li>
+      </ul>
+    </div>
+    <div class="info-block">
+      <h3>Built for pilots</h3>
+      <p>Designed for municipalities, trade fairs, schools, community organisations, and environmental campaigns. Share the QR code — residents scan and report in under 60 seconds.</p>
+    </div>
+    <div class="info-block">
+      <h3>By Re-Versal</h3>
+      <p>UniClean is a product of Excellent Global Conceptional. Our mission is to amplify community voices and drive environmental accountability across Africa and beyond.</p>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<div id="bnav">
+  <button class="bn on" data-p="feed" onclick="showPage('feed',this,true)"><div class="bni">📋</div>FEED</button>
+  <button class="bn" data-p="map" onclick="showPage('map',this,true)"><div class="bni">🗺️</div>MAP</button>
+  <button class="bn-post" onclick="openReport()">🔴</button>
+  <button class="bn" data-p="qr" onclick="showPage('qr',this,true)"><div class="bni">📱</div>QR</button>
+  <button class="bn" data-p="admin" onclick="showPage('admin',this,true)"><div class="bni">🔒</div>ADMIN</button>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="mo" id="report-mo" onclick="cobM(event,'report-mo')">
+  <div class="ms">
+    <div class="mhandle"></div>
+    <div class="mhdr">
+      <div class="mhdr-title" id="rmo-title">🔴 Report an Issue</div>
+      <button class="mcl" onclick="closeModal('report-mo')">✕</button>
+    </div>
+    <div class="mc" id="report-mc"></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="mo" id="det-mo" onclick="cobM(event,'det-mo')">
+  <div class="ms">
+    <div class="mhandle"></div>
+    <div class="mhdr">
+      <div class="mhdr-title">Report Details</div>
+      <button class="mcl" onclick="closeModal('det-mo')">✕</button>
+    </div>
+    <div class="mc" id="det-mc"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+let reports = JSON.parse(localStorage.getItem('uc_reports') || '[]');
+let currentFilter = 'All';
+let mapFilter = 'All';
+let mapInst = null;
+let mapMarkers = [];
+let adminMapInst = null;
+let adminMapMarkers = [];
+let reportStep = 1;
+let rf = {};
+let adminUnlocked = false;
+let admCurrentFilter = 'all';
+let dbConnected = false;
+
+const CATS = [
+  {key:'Litter',label:'🗑 Litter',color:'#d4820a'},
+  {key:'Dumping',label:'⚠️ Illegal Dumping',color:'#c0392b'},
+  {key:'Bin',label:'🪣 Overflowing Bin',color:'#4a6c32'},
+  {key:'Burning',label:'🔥 Waste Burning',color:'#b43210'},
+  {key:'Water',label:'💧 Water Pollution',color:'#1a4a7a'},
+  {key:'Drainage',label:'🚧 Blocked Drainage',color:'#1a4a6a'},
+  {key:'Other',label:'📌 Other',color:'#546e7a'},
+];
+function catColor(k){return (CATS.find(c=>c.key===k)||{color:'#546e7a'}).color;}
+function catLabel(k){return (CATS.find(c=>c.key===k)||{label:k}).label;}
+
+// ══════════════════════════════════
+// SUPABASE HELPERS
+// ══════════════════════════════════
+async function sbFetch(path, options={}){
+  if(!IS_CONFIGURED) return null;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    headers:{
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=representation',
+      ...(options.headers||{})
+    },
+    method: options.method || 'GET',
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  if(!res.ok) throw new Error(await res.text());
+  if(res.status === 204) return null;
+  return res.json();
+}
+
+async function checkDBConnection(){
+  if(!IS_CONFIGURED){
+    setDBStatus('disconnected','Not configured');
+    document.getElementById('setup-banner').classList.add('show');
+    return false;
+  }
+  try{
+    await sbFetch('reports?limit=1');
+    dbConnected = true;
+    setDBStatus('connected','Connected');
+    document.getElementById('setup-banner').classList.remove('show');
+    return true;
+  } catch(e){
+    dbConnected = false;
+    setDBStatus('error','DB Error');
+    return false;
+  }
+}
+
+function setDBStatus(state, text){
+  ['db-dot','admin-db-dot'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.className='db-dot'; el.classList.add(state); }
+  });
+  const hdr = document.getElementById('db-status-hdr');
+  if(hdr) hdr.style.display='flex';
+  const t1 = document.getElementById('db-status-txt');
+  const t2 = document.getElementById('admin-db-txt');
+  if(t1) t1.textContent = text;
+  if(t2) t2.textContent = text;
+}
+
+// ══════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════
+function showPage(id, btn, fromBot=false){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg = document.getElementById('page-'+id);
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  const nb = document.querySelector(`.nb[data-p="${id}"]`);
+  if(nb) nb.classList.add('on');
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
+  const bb = document.querySelector(`.bn[data-p="${id}"]`);
+  if(bb) bb.classList.add('on');
+  if(id==='map') setTimeout(initMap, 100);
+  if(id==='qr') initQR();
+  if(id==='export') updateExportCount();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ══════════════════════════════════
+// REPORT MODAL
+// ══════════════════════════════════
+function openReport(){
+  rf = {category:'',desc:'',photo:null,photoFile:null,video:null,lat:null,lng:null,coords:'',locSource:''};
+  reportStep = 1;
+  renderReportStep();
+  document.getElementById('report-mo').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function cobM(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+
+function renderReportStep(){
+  const el = document.getElementById('report-mc');
+  const title = document.getElementById('rmo-title');
+
+  if(reportStep===99){
+    title.textContent='Report Submitted ✅';
+    el.innerHTML=`<div class="suc">
+      <div class="suc-ic">✅</div>
+      <div class="suc-t">Report is Live!</div>
+      <div class="suc-s">Your report has been added to the community map. Thank you for making a difference.</div>
+      <button class="btn-primary" onclick="closeModal('report-mo');showPage('map')">View on Map</button>
+      <div style="margin-top:10px"></div>
+      <button class="btn-secondary" onclick="openReport()">Submit Another Report</button>
+    </div>`;
+    return;
+  }
+
+  const stepHTML=`<div class="step-indicator">
+    <div class="step-dot ${reportStep>=1?'active':''}" >1</div>
+    <div class="step-line ${reportStep>1?'done':''}"></div>
+    <div class="step-dot ${reportStep===2?'active':reportStep>2?'done':''}">${reportStep>2?'✓':'2'}</div>
+    <div class="step-line ${reportStep>2?'done':''}"></div>
+    <div class="step-dot ${reportStep===3?'active':''}">3</div>
+  </div>`;
+
+  if(reportStep===1){
+    title.textContent='🔴 Step 1 — Category & Photo';
+    el.innerHTML=`${stepHTML}
+      <div class="fg">
+        <label class="fl">Issue Category <span style="color:var(--red)">*</span></label>
+        <div class="opts" id="cat-opts">${CATS.map(c=>`<button class="opt${rf.category===c.key?' sel':''}" onclick="selCat('${c.key}',this)">${c.label}</button>`).join('')}</div>
+      </div>
+      <div class="fg">
+        <label class="fl">Photo <span style="color:var(--red)">*</span></label>
+        <div class="photo-zone">
+          <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this)"/>
+          <div class="photo-placeholder" id="photo-ph"><div class="ic">📸</div><div class="pt">Tap to take or upload photo</div><div class="ps">Photo is required</div></div>
+          <img class="photo-preview" id="photo-prev"/>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Video (Optional)</label>
+        <div class="photo-zone" style="min-height:80px;">
+          <input type="file" accept="video/*" capture="environment" onchange="handleVideo(this)"/>
+          <div class="photo-placeholder"><div class="ic" style="font-size:24px">🎥</div><div class="pt">Tap to record or upload video</div></div>
+        </div>
+        <div id="vid-name" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--sprout);margin-top:5px;"></div>
+      </div>
+      <button class="btn-primary" onclick="step1Next()">Next →</button>`;
+  }
+
+  if(reportStep===2){
+    title.textContent='📝 Step 2 — Description';
+    el.innerHTML=`${stepHTML}
+      <div class="fg">
+        <label class="fl">Describe the Issue <span style="color:var(--red)">*</span></label>
+        <textarea class="fta" id="rf-desc" placeholder="What did you see? How bad is it? Any details that would help..." maxlength="500">${rf.desc}</textarea>
+        <div class="fhint">Maximum 500 characters</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" style="flex:1" onclick="reportStep=1;renderReportStep()">← Back</button>
+        <button class="btn-primary" style="flex:2" onclick="step2Next()">Next →</button>
+      </div>`;
+  }
+
+  if(reportStep===3){
+    title.textContent='📍 Step 3 — Location';
+    el.innerHTML=`${stepHTML}
+      <div class="fg">
+        <div style="background:rgba(27,92,42,.12);border:1px solid rgba(45,140,66,.3);border-radius:var(--r12);padding:14px 16px;margin-bottom:12px;">
+          <div style="font-size:22px;margin-bottom:8px">📍</div>
+          <div style="font-family:'Fraunces',serif;font-size:14px;font-weight:700;color:var(--pale);margin-bottom:4px">Allow Location Access</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:12px">UniClean needs your GPS to pin this report on the community map. Your location is only used for this report.</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" style="font-size:12px;padding:10px;" onclick="getLiveLocation()">📍 Use My Location</button>
+            <button class="btn-secondary" style="font-size:12px;padding:10px;flex:1" onclick="enableManual()">✏️ Enter Manually</button>
+          </div>
+        </div>
+        <div class="loc-bar">
+          <div style="font-size:18px;flex-shrink:0">🌐</div>
+          <div class="loc-text${rf.coords?' captured':''}" id="loc-text">${rf.coords ? '📍 '+rf.coords : 'Waiting for location…'}</div>
+        </div>
+        <input class="fi" id="manual-coords" placeholder="e.g. 6.5244, 3.3792" style="display:none;margin-top:8px;" value="${rf.coords}" oninput="saveManualCoords(this.value)"/>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" style="flex:1" onclick="reportStep=2;renderReportStep()">← Back</button>
+        <button class="btn-primary" style="flex:2" onclick="submitReport()">Submit Report ✓</button>
+      </div>`;
+  }
+}
+
+function selCat(key,btn){
+  rf.category=key;
+  document.querySelectorAll('#cat-opts .opt').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function handlePhoto(input){
+  const file=input.files[0]; if(!file) return;
+  rf.photoFile=file;
+  const r=new FileReader();
+  r.onload=e=>{
+    rf.photo=e.target.result;
+    const prev=document.getElementById('photo-prev');
+    const ph=document.getElementById('photo-ph');
+    if(prev){prev.src=rf.photo;prev.style.display='block';}
+    if(ph) ph.style.display='none';
+  };
+  r.readAsDataURL(file);
+}
+
+function handleVideo(input){
+  const file=input.files[0]; if(!file) return;
+  rf.video=file.name;
+  const vn=document.getElementById('vid-name');
+  if(vn) vn.textContent='🎥 '+file.name;
+}
+
+function step1Next(){
+  if(!rf.category){showToast('Please select a category');return;}
+  if(!rf.photo){showToast('Please add a photo');return;}
+  reportStep=2; renderReportStep();
+}
+
+function step2Next(){
+  const d=document.getElementById('rf-desc');
+  if(d) rf.desc=d.value.trim();
+  if(!rf.desc){showToast('Please add a description');return;}
+  reportStep=3; renderReportStep();
+}
+
+function getLiveLocation(){
+  const lt=document.getElementById('loc-text');
+  if(lt){lt.textContent='⏳ Getting your location…';lt.classList.remove('captured');}
+  if(!navigator.geolocation){if(lt)lt.textContent='⚠️ GPS unavailable — enter manually';enableManual();return;}
+  navigator.geolocation.getCurrentPosition(
+    p=>{
+      rf.lat=p.coords.latitude; rf.lng=p.coords.longitude;
+      rf.coords=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6);
+      rf.locSource='GPS (±'+Math.round(p.coords.accuracy)+'m)';
+      if(lt){lt.textContent='📍 '+rf.coords;lt.classList.add('captured');}
+      showToast('Location captured ✓');
+    },
+    ()=>{if(lt)lt.textContent='⚠️ Permission denied — enter manually';enableManual();},
+    {enableHighAccuracy:true,timeout:12000,maximumAge:0}
+  );
+}
+
+function enableManual(){
+  const mc=document.getElementById('manual-coords');
+  if(mc) mc.style.display='block';
+}
+
+function saveManualCoords(v){
+  rf.coords=v.trim();
+  const parts=v.split(',');
+  if(parts.length===2){rf.lat=parseFloat(parts[0]);rf.lng=parseFloat(parts[1]);}
+}
+
+async function submitReport(){
+  const now=new Date();
+  const report={
+    id:Date.now(),
+    category:rf.category, desc:rf.desc,
+    photo:rf.photo, video:rf.video||null,
+    lat:rf.lat, lng:rf.lng, coords:rf.coords, locSource:rf.locSource,
+    date:now.toISOString(),
+    dateStr:now.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),
+    timeStr:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+    status:'Open', synced:false
+  };
+
+  // Save locally first
+  reports.unshift(report);
+  localStorage.setItem('uc_reports',JSON.stringify(reports));
+
+  // Try Supabase
+  if(IS_CONFIGURED){
+    try{
+      await sbFetch('reports',{
+        method:'POST',
+        body:{
+          category:rf.category,
+          description:rf.desc,
+          photo_url:rf.photo ? '[base64 photo]' : null,
+          video_name:rf.video||null,
+          latitude:rf.lat, longitude:rf.lng,
+          coordinates:rf.coords,
+          location_source:rf.locSource,
+          status:'Open',
+          date_str:report.dateStr,
+          time_str:report.timeStr,
+        }
+      });
+      reports[0].synced=true;
+      localStorage.setItem('uc_reports',JSON.stringify(reports));
+    } catch(e){
+      console.warn('Supabase save failed, stored locally',e);
+    }
+  }
+
+  updateStats();
+  renderFeed();
+  reportStep=99;
+  renderReportStep();
+}
+
+// ══════════════════════════════════
+// FEED
+// ══════════════════════════════════
+function renderFeed(){
+  const el=document.getElementById('feed-list');
+  const filtered=currentFilter==='All'?reports:reports.filter(r=>r.category===currentFilter);
+  updateStats();
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ic">🌍</div><div class="empty-t">No reports yet</div><div class="empty-s">Be the first to report an issue in your community.</div></div>`;
+    return;
+  }
+  el.innerHTML=filtered.map(r=>`
+    <div class="rcard" onclick="openDet(${r.id})">
+      <div class="rcard-stripe" style="background:${catColor(r.category)}"></div>
+      ${r.photo?`<img class="rcard-img" src="${r.photo}" loading="lazy"/>`:`<div class="rcard-img-ph">${catLabel(r.category).split(' ')[0]}</div>`}
+      <div class="rcard-body">
+        <div class="rcard-top">
+          <span class="cat-badge cat-${r.category}">${catLabel(r.category)}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${r.timeStr} · ${r.dateStr}</span>
+        </div>
+        <div class="rcard-desc">${r.desc}</div>
+        <div class="rcard-meta">
+          <span>📍 ${r.coords||'No location'}</span>
+          <span><span class="sync-dot ${r.synced?'synced':'local'}"></span>${r.synced?'Synced':'Local only'}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterFeed(cat,btn){
+  currentFilter=cat;
+  document.querySelectorAll('#filter-row .chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderFeed();
+}
+
+function updateStats(){
+  const total=reports.length;
+  const today=reports.filter(r=>{
+    const d=new Date(r.date),n=new Date();
+    return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();
+  }).length;
+  const locs=new Set(reports.filter(r=>r.lat).map(r=>r.lat.toFixed(2)+','+r.lng.toFixed(2))).size;
+  const el=id=>document.getElementById(id);
+  if(el('s-total')) el('s-total').textContent=total;
+  if(el('s-today')) el('s-today').textContent=today;
+  if(el('s-locs')) el('s-locs').textContent=locs;
+}
+
+// ══════════════════════════════════
+// DETAIL
+// ══════════════════════════════════
+function openDet(id){
+  const r=reports.find(x=>x.id===id); if(!r) return;
+  const el=document.getElementById('det-mc');
+  el.innerHTML=`
+    ${r.photo?`<img class="det-img" src="${r.photo}"/>`:`<div style="text-align:center;font-size:48px;margin-bottom:14px">${catLabel(r.category).split(' ')[0]}</div>`}
+    <div class="det-title">${catLabel(r.category)}</div>
+    <div class="det-meta-grid">
+      <div class="det-meta-box"><div class="det-meta-lbl">DATE</div><div class="det-meta-val">${r.dateStr}</div></div>
+      <div class="det-meta-box"><div class="det-meta-lbl">TIME</div><div class="det-meta-val">${r.timeStr}</div></div>
+      <div class="det-meta-box"><div class="det-meta-lbl">STATUS</div><div class="det-meta-val">${r.status||'Open'}</div></div>
+      <div class="det-meta-box"><div class="det-meta-lbl">SYNC</div><div class="det-meta-val">${r.synced?'✅ Saved to DB':'⚠️ Local only'}</div></div>
+      <div class="det-meta-box" style="grid-column:1/-1"><div class="det-meta-lbl">GPS</div><div class="det-meta-val">${r.coords||'Not captured'}</div></div>
+    </div>
+    <div class="det-desc">${r.desc}</div>
+    ${r.video?`<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--sprout);margin-bottom:12px">🎥 Video attached: ${r.video}</div>`:''}
+    <button class="btn-secondary" onclick="closeModal('det-mo')">Close</button>`;
+  document.getElementById('det-mo').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+// ══════════════════════════════════
+// MAP
+// ══════════════════════════════════
+function initMap(){
+  const el=document.getElementById('map-c'); if(!el) return;
+  if(!mapInst){
+    mapInst=L.map('map-c',{zoomControl:true,attributionControl:false}).setView([0,20],3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInst);
+  }
+  renderMapMarkers();
+}
+
+function renderMapMarkers(){
+  if(!mapInst) return;
+  mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
+  const filtered=mapFilter==='All'?reports:reports.filter(r=>r.category===mapFilter);
+  filtered.filter(r=>r.lat&&r.lng).forEach(r=>{
+    const m=L.circleMarker([r.lat,r.lng],{radius:10,fillColor:catColor(r.category),color:'#fff',weight:2,fillOpacity:.9})
+      .addTo(mapInst)
+      .bindPopup(`<b>${catLabel(r.category)}</b><br>${r.desc.slice(0,80)}<br><small>${r.dateStr} ${r.timeStr}</small>`);
+    mapMarkers.push(m);
+  });
+  if(mapMarkers.length){
+    const bounds=L.latLngBounds(filtered.filter(r=>r.lat).map(r=>[r.lat,r.lng]));
+    mapInst.fitBounds(bounds,{padding:[30,30]});
+  }
+}
+
+function filterMap(cat,btn){
+  mapFilter=cat;
+  document.querySelectorAll('#map-filters .chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderMapMarkers();
+}
+
+// ══════════════════════════════════
+// ADMIN
+// ══════════════════════════════════
+function checkAdminPw(){
+  const pw=document.getElementById('admin-pw-input').value;
+  if(pw===ADMIN_PASSWORD){
+    adminUnlocked=true;
+    document.getElementById('admin-gate').style.display='none';
+    document.getElementById('admin-dashboard').style.display='block';
+    loadAllReports();
+    setTimeout(initAdminMap, 300);
+  } else {
+    showToast('Incorrect password','error');
+    document.getElementById('admin-pw-input').value='';
+  }
+}
+
+function lockAdmin(){
+  adminUnlocked=false;
+  document.getElementById('admin-gate').style.display='flex';
+  document.getElementById('admin-dashboard').style.display='none';
+  document.getElementById('admin-pw-input').value='';
+}
+
+async function loadAllReports(){
+  let allReports = [...reports];
+
+  // If Supabase is connected, load from there too
+  if(IS_CONFIGURED){
+    try{
+      const data = await sbFetch('reports?order=created_at.desc&limit=500');
+      if(data && data.length){
+        // Merge: remote reports that aren't in local
+        const localIds = new Set(reports.map(r=>r.id));
+        const remoteOnly = data.filter(r=>!localIds.has(r.id)).map(r=>({
+          id:r.id, category:r.category, desc:r.description,
+          photo:r.photo_url, lat:r.latitude, lng:r.longitude,
+          coords:r.coordinates, locSource:r.location_source,
+          date:r.created_at, dateStr:r.date_str||new Date(r.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),
+          timeStr:r.time_str||new Date(r.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+          status:r.status||'Open', synced:true, sbId:r.id
+        }));
+        allReports = [...remoteOnly, ...reports];
+        setDBStatus('connected','Connected');
+      }
+    } catch(e){
+      setDBStatus('error','DB Error');
+    }
+  }
+
+  renderAdminStats(allReports);
+  renderAdminTable(allReports);
+  renderAdminCats(allReports);
+  renderAdminMapMarkers(allReports);
+
+  const setupStatus = document.getElementById('admin-setup-status');
+  if(setupStatus){
+    if(!IS_CONFIGURED){
+      setupStatus.innerHTML='<span style="color:var(--amber)">⚠️ Not configured — reports saving locally only. Follow the steps below.</span>';
+    } else if(dbConnected){
+      setupStatus.innerHTML='<span style="color:var(--sprout)">✅ Supabase connected and working.</span>';
+    } else {
+      setupStatus.innerHTML='<span style="color:var(--red)">❌ Supabase URL/key set but connection failed. Check your credentials.</span>';
+    }
+  }
+}
+
+function renderAdminStats(data){
+  const today=data.filter(r=>{
+    const d=new Date(r.date),n=new Date();
+    return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();
+  }).length;
+  const open=data.filter(r=>!r.status||r.status==='Open').length;
+  const resolved=data.filter(r=>r.status==='Resolved').length;
+  const el=id=>document.getElementById(id);
+  if(el('adm-total'))el('adm-total').textContent=data.length;
+  if(el('adm-today'))el('adm-today').textContent=today;
+  if(el('adm-open'))el('adm-open').textContent=open;
+  if(el('adm-resolved'))el('adm-resolved').textContent=resolved;
+}
+
+function renderAdminCats(data){
+  const el=document.getElementById('admin-cats'); if(!el) return;
+  const counts={};
+  data.forEach(r=>{counts[r.category]=(counts[r.category]||0)+1;});
+  const total=data.length||1;
+  el.innerHTML=CATS.map(c=>{
+    const n=counts[c.key]||0;
+    const pct=Math.round(n/total*100);
+    return `<div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:3px;">
+        <span>${c.label}</span><span>${n} (${pct}%)</span>
+      </div>
+      <div style="height:4px;background:var(--surface2);border-radius:2px;">
+        <div style="height:4px;width:${pct}%;background:${c.color};border-radius:2px;transition:width .4s;"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminTable(data){
+  const tbody=document.getElementById('admin-tbody'); if(!tbody) return;
+  const filtered=admCurrentFilter==='all'?data:
+    admCurrentFilter==='open'?data.filter(r=>!r.status||r.status==='Open'):
+    data.filter(r=>r.status==='Resolved');
+
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">No reports found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=filtered.map(r=>`
+    <tr>
+      <td>${r.photo?`<img src="${r.photo}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;">`:'—'}</td>
+      <td><span class="cat-badge cat-${r.category}">${catLabel(r.category)}</span></td>
+      <td style="max-width:140px;">${r.desc?r.desc.slice(0,60)+'…':'-'}</td>
+      <td style="font-size:10px;color:var(--muted)">${r.coords||'—'}</td>
+      <td style="white-space:nowrap">${r.dateStr||''}<br>${r.timeStr||''}</td>
+      <td>
+        <select onchange="updateStatus(${r.id},this.value)" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono',monospace;font-size:10px;padding:4px;border-radius:6px;cursor:pointer;">
+          <option ${(!r.status||r.status==='Open')?'selected':''}>Open</option>
+          <option ${r.status==='In Progress'?'selected':''}>In Progress</option>
+          <option ${r.status==='Resolved'?'selected':''}>Resolved</option>
+        </select>
+      </td>
+      <td><button class="btn-danger" onclick="deleteReport(${r.id})">Delete</button></td>
+    </tr>`).join('');
+}
+
+function admFilter(f){
+  admCurrentFilter=f;
+  ['adm-f-all','adm-f-open','adm-f-res'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.background=el.id==='adm-f-'+f?'var(--green)':'';
+    if(el) el.style.color=el.id==='adm-f-'+f?'var(--mint)':'';
+    if(el) el.style.borderColor=el.id==='adm-f-'+f?'var(--leaf)':'';
+  });
+  renderAdminTable(reports);
+}
+
+function updateStatus(id,status){
+  const idx=reports.findIndex(r=>r.id===id);
+  if(idx>-1){
+    reports[idx].status=status;
+    localStorage.setItem('uc_reports',JSON.stringify(reports));
+  }
+  if(IS_CONFIGURED){
+    sbFetch(`reports?id=eq.${id}`,{method:'PATCH',prefer:'return=minimal',body:{status}}).catch(()=>{});
+  }
+  renderAdminStats(reports);
+  showToast('Status updated: '+status);
+}
+
+function deleteReport(id){
+  if(!confirm('Delete this report? This cannot be undone.')) return;
+  reports=reports.filter(r=>r.id!==id);
+  localStorage.setItem('uc_reports',JSON.stringify(reports));
+  if(IS_CONFIGURED){
+    sbFetch(`reports?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'}).catch(()=>{});
+  }
+  loadAllReports();
+  renderFeed();
+  showToast('Report deleted');
+}
+
+function initAdminMap(){
+  const el=document.getElementById('admin-map-c'); if(!el) return;
+  if(!adminMapInst){
+    adminMapInst=L.map('admin-map-c',{zoomControl:true,attributionControl:false}).setView([0,20],2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMapInst);
+  }
+  renderAdminMapMarkers(reports);
+}
+
+function renderAdminMapMarkers(data){
+  if(!adminMapInst) return;
+  adminMapMarkers.forEach(m=>m.remove()); adminMapMarkers=[];
+  const withLoc=data.filter(r=>r.lat&&r.lng);
+  const cnt=document.getElementById('admin-map-count');
+  if(cnt) cnt.textContent=withLoc.length+' pinned';
+  withLoc.forEach(r=>{
+    const m=L.circleMarker([r.lat,r.lng],{radius:8,fillColor:catColor(r.category),color:'#fff',weight:2,fillOpacity:.9})
+      .addTo(adminMapInst)
+      .bindPopup(`<b>${catLabel(r.category)}</b><br>${(r.desc||'').slice(0,60)}<br><small>${r.status||'Open'}</small>`);
+    adminMapMarkers.push(m);
+  });
+  if(adminMapMarkers.length){
+    const bounds=L.latLngBounds(withLoc.map(r=>[r.lat,r.lng]));
+    adminMapInst.fitBounds(bounds,{padding:[20,20]});
+  }
+}
+
+function copySQL(){
+  const sql=`CREATE TABLE reports (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  category TEXT NOT NULL,
+  description TEXT,
+  photo_url TEXT,
+  video_name TEXT,
+  latitude FLOAT,
+  longitude FLOAT,
+  coordinates TEXT,
+  location_source TEXT,
+  status TEXT DEFAULT 'Open',
+  date_str TEXT,
+  time_str TEXT
+);
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public can insert" ON reports FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public can read" ON reports FOR SELECT USING (true);
+CREATE POLICY "Public can update status" ON reports FOR UPDATE USING (true);`;
+  navigator.clipboard.writeText(sql).then(()=>showToast('SQL copied!')).catch(()=>showToast('Copy failed — select manually'));
+}
+
+// ══════════════════════════════════
+// QR
+// ══════════════════════════════════
+function initQR(){
+  const el=document.getElementById('qr-canvas');
+  const url=window.location.href.split('#')[0];
+  document.getElementById('qr-url-text').textContent=url;
+  el.innerHTML='';
+  if(typeof QRCode!=='undefined'){
+    new QRCode(el,{text:url,width:200,height:200,colorDark:'#0a1a0f',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  }
+}
+
+function downloadQR(){
+  const canvas=document.querySelector('#qr-canvas canvas');
+  if(!canvas){showToast('QR not ready');return;}
+  const a=document.createElement('a');
+  a.download='uniclean-qr.png'; a.href=canvas.toDataURL(); a.click();
+  showToast('QR Code downloaded!');
+}
+
+// ══════════════════════════════════
+// EXPORT
+// ══════════════════════════════════
+function updateExportCount(){
+  const el=document.getElementById('export-count');
+  if(el) el.textContent=reports.length+' report'+(reports.length!==1?'s':'')+' available to export.';
+}
+
+function exportCSV(){
+  if(!reports.length){showToast('No reports to export');return;}
+  const headers=['ID','Date','Time','Category','Description','Latitude','Longitude','Coordinates','Location Source','Status','Synced to DB'];
+  const rows=reports.map(r=>[
+    r.id,r.dateStr,r.timeStr,
+    catLabel(r.category).replace(/[^\w\s]/g,'').trim(),
+    '"'+(r.desc||'').replace(/"/g,'""')+'"',
+    r.lat||'',r.lng||'',r.coords||'',r.locSource||'',r.status||'Open',r.synced?'Yes':'No'
+  ]);
+  const csv=[headers,...rows].map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='uniclean-reports-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); showToast('CSV exported!');
+}
+
+function exportExcel(){
+  if(!reports.length){showToast('No reports to export');return;}
+  const headers=['ID','Date','Time','Category','Description','Latitude','Longitude','Coordinates','Location Source','Status'];
+  const rows=reports.map(r=>[
+    r.id,r.dateStr,r.timeStr,
+    catLabel(r.category).replace(/[^\w\s]/g,'').trim(),
+    (r.desc||'').replace(/\t/g,' '),r.lat||'',r.lng||'',r.coords||'',r.locSource||'',r.status||'Open'
+  ]);
+  const tsv=[headers,...rows].map(r=>r.join('\t')).join('\n');
+  const blob=new Blob([tsv],{type:'application/vnd.ms-excel'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='uniclean-reports-'+new Date().toISOString().slice(0,10)+'.xls';
+  a.click(); showToast('Excel file exported!');
+}
+
+// ══════════════════════════════════
+// TOAST
+// ══════════════════════════════════
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='show'+(type?' '+type:'');
+  setTimeout(()=>t.className='',2800);
+}
+
+// ══════════════════════════════════
+// INIT
+// ══════════════════════════════════
+renderFeed();
+updateStats();
+checkDBConnection();
+</script>
+</body>
+</html>
