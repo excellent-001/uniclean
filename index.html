@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>UniClean — See it. Report it. Resolve it.</title>
+<meta name="description" content="Report environmental issues in your community. No account needed."/>
+<meta name="theme-color" content="#0d1f10"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d1f10;
+  --surface:#121f14;
+  --surface2:#1a2e1d;
+  --surface3:#223428;
+  --border:#1e3422;
+  --border2:#2b4830;
+  --green:#1B6B2A;
+  --leaf:#2d8c42;
+  --sprout:#4caf6a;
+  --mint:#a8d5b5;
+  --pale:#eef6f0;
+  --text:#c4d9c8;
+  --muted:#6b9070;
+  --dim:#3a5c3e;
+  --gold:#C9A227;
+  --gold2:#e8c44a;
+  --red:#D32F2F;
+  --red2:#e57373;
+  --amber:#d4820a;
+  --blue:#1a4a7a;
+  --white:#ffffff;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;--rF:999px;
+  --t:.18s ease;
+  --shadow:0 2px 16px rgba(0,0,0,.35);
+}
+html{-webkit-tap-highlight-color:transparent;scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit;}
+input,textarea,select{font-family:inherit;}
+img{max-width:100%;display:block;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--leaf);border-radius:3px;}
+
+/* ── LAYOUT ── */
+.container{max-width:700px;margin:0 auto;padding:0 16px;}
+.page{display:none;}
+.page.active{display:block;}
+main{padding:0 0 72px;}
+
+/* ── HEADER ── */
+#hdr{position:sticky;top:0;z-index:400;background:rgba(13,31,16,.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;}
+#hdr .container{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 14px;}
+.logo-wrap{display:flex;align-items:center;gap:9px;cursor:pointer;text-decoration:none;}
+.logo-name{font-family:'Fraunces',serif;font-size:21px;font-weight:900;color:var(--pale);letter-spacing:-.3px;}
+.logo-name span{color:var(--gold);}
+.logo-sub{font-family:'DM Mono',monospace;font-size:7.5px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1px;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.db-pill{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);padding:4px 9px;border:1px solid var(--border2);border-radius:var(--rF);}
+.db-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);}
+.db-dot.on{background:var(--sprout);}
+.db-dot.err{background:var(--red);}
+.btn-cta{background:var(--red);color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.6px;padding:8px 15px;border-radius:var(--rF);transition:opacity var(--t);white-space:nowrap;}
+.btn-cta:hover{opacity:.87;}
+
+/* ── BOTTOM NAV (only nav) ── */
+#bnav{position:fixed;bottom:0;left:0;right:0;z-index:400;background:rgba(13,31,16,.98);border-top:1px solid var(--border);display:flex;align-items:center;height:60px;padding:0 4px;gap:2px;}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 2px;font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.3px;color:var(--dim);transition:color var(--t);border-radius:var(--r8);}
+.bn.on{color:var(--gold);}
+.bn-ic{font-size:19px;line-height:1;}
+.bn-fab{flex:0 0 52px;height:52px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 4px;box-shadow:0 4px 18px rgba(211,47,47,.45);transition:transform var(--t),box-shadow var(--t);}
+.bn-fab:active{transform:scale(.91);box-shadow:0 2px 8px rgba(211,47,47,.3);}
+
+/* ── BUTTONS ── */
+.btn-primary{background:var(--green);color:#fff;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.5px;padding:13px;border-radius:var(--r12);width:100%;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-primary:hover{background:#1e7a30;}
+.btn-primary:active{opacity:.82;}
+.btn-gold{background:var(--gold);color:#1a1200;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.5px;padding:13px;border-radius:var(--r12);width:100%;transition:all var(--t);display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-gold:active{opacity:.82;}
+.btn-secondary{background:var(--surface2);color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:13px;border-radius:var(--r12);width:100%;border:1px solid var(--border2);transition:all var(--t);}
+.btn-danger{background:rgba(211,47,47,.12);color:var(--red2);font-family:'DM Mono',monospace;font-size:11px;padding:7px 13px;border-radius:var(--r8);border:1px solid rgba(211,47,47,.25);}
+.btn-sm{font-family:'DM Mono',monospace;font-size:10px;padding:5px 11px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);transition:all var(--t);}
+.btn-sm:hover{color:var(--sprout);border-color:var(--sprout);}
+.btn-sm.sel{background:rgba(44,140,66,.18);color:var(--sprout);border-color:var(--sprout);}
+
+/* ── FORMS ── */
+.fg{margin-bottom:14px;}
+.fl{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;display:block;}
+.fi{width:100%;padding:11px 13px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r12);color:var(--pale);font-size:14px;outline:none;transition:border-color var(--t);}
+.fi:focus{border-color:var(--leaf);}
+.fi::placeholder{color:var(--dim);}
+.fta{width:100%;padding:11px 13px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r12);color:var(--pale);font-size:14px;line-height:1.6;resize:vertical;min-height:90px;outline:none;transition:border-color var(--t);}
+.fta:focus{border-color:var(--leaf);}
+.fta::placeholder{color:var(--dim);}
+.fhint{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px;}
+.opts{display:flex;flex-wrap:wrap;gap:6px;}
+.opt{font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 12px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);background:var(--surface2);transition:all var(--t);cursor:pointer;}
+.opt.sel{background:rgba(27,107,42,.2);color:var(--mint);border-color:var(--leaf);}
+
+/* ── CAMERA ZONE ── */
+.cam-zone{position:relative;border:2px dashed var(--border2);border-radius:var(--r16);overflow:hidden;min-height:130px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color var(--t);}
+.cam-zone:hover{border-color:var(--gold);}
+.cam-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.cam-ph{text-align:center;pointer-events:none;}
+.cam-ph .ci{font-size:32px;margin-bottom:7px;}
+.cam-ph .ct{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);}
+.cam-ph .cs{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;}
+.cam-prev{width:100%;height:190px;object-fit:cover;display:none;border-radius:14px;}
+
+/* ── LOC BAR ── */
+.loc-bar{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r12);}
+.loc-txt{flex:1;font-family:'DM Mono',monospace;font-size:10.5px;color:var(--muted);}
+.loc-txt.ok{color:var(--sprout);}
+
+/* ── STEP BAR ── */
+.step-bar{display:flex;align-items:center;margin-bottom:18px;}
+.sd{width:26px;height:26px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);flex-shrink:0;transition:all var(--t);}
+.sd.done{background:rgba(44,140,66,.2);border-color:var(--leaf);color:var(--sprout);}
+.sd.active{background:var(--green);border-color:var(--sprout);color:#fff;}
+.sl{flex:1;height:2px;background:var(--border);}
+.sl.done{background:var(--leaf);}
+
+/* ── SEC LABEL ── */
+.sec-lbl{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin:18px 0 11px;display:flex;align-items:center;gap:9px;}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── LIFECYCLE STAGE BADGES ── */
+.stage{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9.5px;font-weight:500;padding:3px 9px;border-radius:var(--rF);}
+.stage-Spotted{background:rgba(26,74,122,.2);color:#90caf9;border:1px solid rgba(26,74,122,.4);}
+.stage-Claimed{background:rgba(201,162,39,.15);color:var(--gold2);border:1px solid rgba(201,162,39,.35);}
+.stage-Progress{background:rgba(212,130,10,.15);color:#f0a832;border:1px solid rgba(212,130,10,.3);}
+.stage-Resolved{background:rgba(56,142,60,.18);color:#81c784;border:1px solid rgba(56,142,60,.35);}
+.stage-Unclaimed{background:rgba(211,47,47,.15);color:var(--red2);border:1px solid rgba(211,47,47,.3);}
+
+/* ── CATEGORY BADGES ── */
+.cat{font-family:'DM Mono',monospace;font-size:9.5px;padding:2px 9px;border-radius:var(--rF);}
+.cat-Litter{background:rgba(212,130,10,.1);color:#f0a832;border:1px solid rgba(212,130,10,.25);}
+.cat-Dumping{background:rgba(211,47,47,.1);color:var(--red2);border:1px solid rgba(211,47,47,.25);}
+.cat-Bin{background:rgba(74,108,50,.18);color:var(--mint);border:1px solid rgba(74,108,50,.35);}
+.cat-Burning{background:rgba(180,50,10,.12);color:#ff8a65;border:1px solid rgba(180,50,10,.28);}
+.cat-Water{background:rgba(26,74,122,.18);color:#90caf9;border:1px solid rgba(26,74,122,.35);}
+.cat-Drainage{background:rgba(50,90,130,.14);color:#80deea;border:1px solid rgba(50,90,130,.28);}
+.cat-Other{background:rgba(80,80,80,.14);color:#b0bec5;border:1px solid rgba(80,80,80,.28);}
+
+/* ── FEED ── */
+.feed{display:flex;flex-direction:column;gap:11px;padding:14px 0 0;}
+.rcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);overflow:hidden;cursor:pointer;transition:all var(--t);position:relative;}
+.rcard:hover{border-color:var(--border2);transform:translateY(-1px);}
+.rcard-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;}
+.rcard-img{width:100%;height:155px;object-fit:cover;}
+.rcard-img-ph{width:100%;height:90px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:28px;}
+.rcard-body{padding:13px 14px;}
+.rcard-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px;}
+.rcard-desc{font-size:13.5px;color:var(--text);line-height:1.55;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.rcard-meta{display:flex;align-items:center;gap:10px;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);flex-wrap:wrap;}
+.rcard-id{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);background:var(--surface2);padding:2px 7px;border-radius:4px;}
+.unclaimed-flag{position:absolute;top:10px;right:10px;background:var(--red);color:#fff;font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:var(--rF);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.support-count{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold2);background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.2);padding:2px 7px;border-radius:var(--rF);}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(145deg,#071a0a,#0d2614);border:1px solid var(--border);border-radius:var(--r20);padding:22px 18px 18px;margin:14px 0 14px;}
+.hero h1{font-family:'Fraunces',serif;font-size:23px;font-weight:900;color:var(--pale);line-height:1.22;margin-bottom:5px;}
+.hero h1 em{color:var(--gold);font-style:normal;}
+.hero p{font-family:'Fraunces',serif;font-style:italic;font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:15px;}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.stat-box{background:rgba(255,255,255,.035);border:1px solid var(--border);border-radius:var(--r12);padding:11px 6px;text-align:center;}
+.stat-n{font-family:'Fraunces',serif;font-size:21px;font-weight:700;color:var(--pale);line-height:1;}
+.stat-l{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.5px;margin-top:3px;}
+
+/* ── FILTER ROW ── */
+.frow{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:2px;}
+.frow::-webkit-scrollbar{display:none;}
+.chip{font-family:'DM Mono',monospace;font-size:9.5px;padding:5px 12px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);background:var(--surface);white-space:nowrap;cursor:pointer;transition:all var(--t);}
+.chip.on{background:rgba(27,107,42,.2);color:var(--mint);border-color:var(--leaf);}
+
+/* ── MAP ── */
+#map-c{height:400px;border-radius:var(--r16);border:1px solid var(--border);overflow:hidden;margin-bottom:12px;}
+.map-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+.map-leg-i{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);}
+.map-dot{width:8px;height:8px;border-radius:50%;}
+
+/* ── MODAL ── */
+.mo{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .22s ease;}
+.mo.open{opacity:1;pointer-events:all;}
+.ms{background:var(--surface);border-radius:22px 22px 0 0;width:100%;max-height:94vh;overflow-y:auto;transform:translateY(100%);transition:transform .28s cubic-bezier(.32,0,.15,1);}
+.mo.open .ms{transform:translateY(0);}
+.mhandle{width:34px;height:4px;background:var(--border2);border-radius:2px;margin:11px auto 0;}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:14px 17px 12px;}
+.mhdr-t{font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--pale);}
+.mcl{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);}
+.mc{padding:0 17px 26px;}
+
+/* ── DETAIL MODAL ── */
+.det-img{width:100%;max-height:250px;object-fit:cover;border-radius:var(--r12);margin-bottom:13px;}
+.det-h{font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--pale);margin-bottom:5px;}
+.det-mg{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:13px;}
+.det-mb{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r12);padding:9px 11px;}
+.det-ml{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1px;margin-bottom:2px;}
+.det-mv{font-family:'DM Mono',monospace;font-size:11px;color:var(--pale);}
+.det-desc{font-size:13.5px;color:var(--text);line-height:1.7;margin-bottom:14px;}
+
+/* ── LIFECYCLE TIMELINE in detail ── */
+.timeline{margin-bottom:16px;}
+.tl-item{display:flex;gap:11px;margin-bottom:10px;align-items:flex-start;}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;}
+.tl-dot.active{box-shadow:0 0 0 3px rgba(201,162,39,.3);}
+.tl-body{flex:1;}
+.tl-stage{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.tl-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);}
+.tl-note{font-size:12.5px;color:var(--text);margin-top:2px;}
+.tl-claimant{font-family:'DM Mono',monospace;font-size:10px;color:var(--gold2);margin-top:2px;}
+
+/* ── CLAIM FORM ── */
+.claim-box{background:rgba(201,162,39,.07);border:1px solid rgba(201,162,39,.25);border-radius:var(--r16);padding:14px 15px;margin-bottom:14px;}
+.claim-box-t{font-family:'Fraunces',serif;font-size:14px;font-weight:700;color:var(--pale);margin-bottom:4px;}
+.claim-box-s{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.7;margin-bottom:12px;}
+.entity-opts{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.eopt{font-family:'DM Mono',monospace;font-size:10px;padding:5px 10px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);background:var(--surface2);cursor:pointer;transition:all var(--t);}
+.eopt.sel{background:rgba(201,162,39,.15);color:var(--gold2);border-color:var(--gold);}
+
+/* ── SUCCESS ── */
+.suc{text-align:center;padding:28px 14px;}
+.suc-ic{font-size:52px;margin-bottom:10px;}
+.suc-id{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:var(--gold);letter-spacing:2px;margin-bottom:6px;}
+.suc-t{font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:var(--pale);margin-bottom:6px;}
+.suc-s{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px;}
+.suc-mini-map{height:140px;border-radius:var(--r12);border:1px solid var(--border);overflow:hidden;margin-bottom:16px;}
+
+/* ── DUPLICATE PROMPT ── */
+.dup-card{background:rgba(212,130,10,.08);border:1px solid rgba(212,130,10,.3);border-radius:var(--r16);padding:14px 15px;margin-bottom:14px;}
+.dup-card-t{font-family:'DM Mono',monospace;font-size:10px;color:var(--amber);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+.dup-card-desc{font-size:13px;color:var(--text);margin-bottom:12px;}
+
+/* ── QR ── */
+.qr-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r20);padding:22px;text-align:center;margin-bottom:13px;}
+#qr-canvas{display:inline-block;padding:12px;background:#fff;border-radius:var(--r12);margin:14px auto;}
+
+/* ── EXPORT ── */
+.exp-row{display:flex;gap:9px;margin-top:13px;}
+.btn-exp{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:11px;border-radius:var(--r12);transition:all var(--t);}
+.btn-exp:hover{border-color:var(--sprout);color:var(--sprout);}
+
+/* ── ADMIN ── */
+#admin-gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:58vh;padding:30px 18px;text-align:center;}
+.adm-locked-ic{font-size:46px;margin-bottom:12px;}
+.adm-locked-t{font-family:'Fraunces',serif;font-size:19px;font-weight:900;color:var(--pale);margin-bottom:5px;}
+.adm-locked-s{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:18px;line-height:1.7;}
+.adm-dash{display:none;}
+.adm-sg{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:18px;}
+.adm-s{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r16);padding:15px;}
+.adm-n{font-family:'Fraunces',serif;font-size:26px;font-weight:900;color:var(--pale);}
+.adm-l{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1px;margin-top:1px;}
+.adm-sub{font-family:'DM Mono',monospace;font-size:9.5px;margin-top:3px;}
+.adm-sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);margin-bottom:12px;overflow:hidden;}
+.adm-sec-hdr{padding:12px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.adm-sec-t{font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;}
+.adm-map{height:280px;border-radius:0 0 var(--r16) var(--r16);overflow:hidden;}
+.adm-tbl{width:100%;border-collapse:collapse;}
+.adm-tbl th{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:1px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.adm-tbl td{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--text);padding:9px;border-bottom:1px solid var(--border);vertical-align:top;}
+.adm-tbl tr:hover td{background:var(--surface2);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:38px 18px;}
+.empty-ic{font-size:38px;margin-bottom:9px;}
+.empty-t{font-family:'Fraunces',serif;font-size:15px;color:var(--pale);margin-bottom:4px;}
+.empty-s{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+
+/* ── INFO BLOCK ── */
+.ib{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);padding:16px;margin-bottom:11px;}
+.ib h3{font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--pale);margin-bottom:7px;}
+.ib p{font-size:12.5px;color:var(--muted);line-height:1.7;}
+.ib ul{font-size:12.5px;color:var(--muted);line-height:1.8;padding-left:16px;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface);border:1px solid var(--leaf);border-radius:var(--rF);padding:9px 18px;font-family:'DM Mono',monospace;font-size:11px;color:var(--sprout);z-index:800;opacity:0;transition:all .22s;pointer-events:none;white-space:nowrap;max-width:92vw;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.err{border-color:var(--red);color:var(--red2);}
+#toast.gold{border-color:var(--gold);color:var(--gold2);}
+
+/* ── DESKTOP RESPONSIVE ── */
+@media(min-width:768px){
+  body{font-size:15px;}
+  .container{max-width:780px;}
+  #hdr{height:62px;}
+  .logo-name{font-size:24px;}
+  #bnav{height:66px;padding:0 20px;max-width:100%;justify-content:center;gap:0;}
+  .bn{max-width:100px;font-size:10px;}
+  .bn-ic{font-size:22px;}
+  .bn-fab{flex:0 0 58px;height:58px;font-size:24px;}
+  .hero h1{font-size:28px;}
+  .stat-grid{grid-template-columns:repeat(3,1fr);}
+  .det-mg{grid-template-columns:repeat(3,1fr);}
+  .adm-sg{grid-template-columns:repeat(4,1fr);}
+  main{padding:0 0 80px;}
+  .ms{max-width:600px;margin:auto;border-radius:22px;position:relative;top:auto;transform:none!important;}
+  .mo{align-items:center;}
+  .mo.open .ms{transform:translateY(0)!important;}
+  .feed{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  #map-c{height:520px;}
+  .adm-map{height:360px;}
+  .rcard-img{height:140px;}
+  .hero{padding:28px 24px 22px;}
+}
+@media(min-width:1100px){
+  .container{max-width:960px;}
+  .feed{grid-template-columns:repeat(3,1fr);}
+}
+
+/* ── ACTIONS PAGE ── */
+.action-hero{background:linear-gradient(145deg,#0a1f12,#0f2a16);border:1px solid var(--border);border-radius:var(--r20);padding:22px 18px 18px;margin:14px 0 14px;}
+.action-hero h2{font-family:'Fraunces',serif;font-size:20px;font-weight:900;color:var(--pale);margin-bottom:5px;}
+.action-hero p{font-family:'Fraunces',serif;font-style:italic;font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:14px;}
+.entity-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:16px;}
+.entity-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);padding:14px;cursor:pointer;transition:all var(--t);text-align:center;}
+.entity-card:hover{border-color:var(--gold);transform:translateY(-2px);}
+.entity-card .ec-ic{font-size:28px;margin-bottom:6px;}
+.entity-card .ec-t{font-family:'Fraunces',serif;font-size:13px;font-weight:700;color:var(--pale);}
+.entity-card .ec-s{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;line-height:1.5;}
+.claimed-feed{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+.claimed-card{background:var(--surface);border:1px solid rgba(201,162,39,.25);border-radius:var(--r16);overflow:hidden;cursor:pointer;transition:all var(--t);}
+.claimed-card:hover{border-color:var(--gold);}
+.claimed-card-hdr{background:rgba(201,162,39,.07);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,162,39,.15);}
+.claimed-card-body{padding:12px 14px;}
+.claimer-badge{display:flex;align-items:center;gap:7px;}
+.claimer-av{width:32px;height:32px;border-radius:50%;background:rgba(201,162,39,.2);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.claimer-name{font-family:'Fraunces',serif;font-size:13px;font-weight:700;color:var(--gold2);}
+.claimer-entity{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);}
+.progress-steps{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;}
+.ps-step{font-family:'DM Mono',monospace;font-size:9px;padding:3px 9px;border-radius:var(--rF);border:1px solid var(--border2);color:var(--muted);}
+.ps-step.done{background:rgba(44,140,66,.15);color:var(--sprout);border-color:var(--leaf);}
+.ps-step.active{background:rgba(212,130,10,.15);color:#f0a832;border-color:rgba(212,130,10,.4);}
+
+
+/* ── FOOTER ── */
+.page-footer{text-align:center;padding:18px 0 8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:.5px;}
+
+/* ── SETUP BANNER ── */
+.setup-banner{background:rgba(201,162,39,.07);border:1px solid rgba(201,162,39,.25);border-radius:var(--r12);padding:11px 14px;margin-bottom:14px;display:none;}
+.setup-banner.show{display:block;}
+
+/* ── UNCLAIMED BANNER on feed ── */
+.unclaimed-banner{background:rgba(211,47,47,.07);border:1px solid rgba(211,47,47,.25);border-radius:var(--r12);padding:10px 13px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--red2);}
+</style>
+</head>
+<body>
+
+<script>
+// ══ CONFIG ══
+const SUPABASE_URL = 'https://kldnnyheztqsourrxlkz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtsZG5ueWhlenRxc291cnJ4bGt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTcwNDksImV4cCI6MjA5NjgzMzA0OX0.7ild3o38iCx-fYcEIRWnIMqnFt-3nzg70aR9Ke-tAkk';
+const ADMIN_PASSWORD = 'UniClean@2026!';
+const UNCLAIMED_HOURS = 24;
+const DUPLICATE_RADIUS_M = 50;
+const IS_CONFIGURED = SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+</script>
+
+<!-- HEADER -->
+<header id="hdr">
+  <div class="container" style="padding:0 14px;">
+    <div class="logo-wrap" onclick="showPage('feed')">
+      <svg width="26" height="30" viewBox="0 0 28 32" fill="none">
+        <path d="M14 1C8 1 3 6 3 12c0 8 11 20 11 20S25 20 25 12C25 6 20 1 14 1z" fill="#1B6B2A"/>
+        <path d="M14 1C8 1 3 6 3 12c0 8 11 20 11 20S25 20 25 12C25 6 20 1 14 1z" fill="none" stroke="#C9A227" stroke-width="1.2"/>
+        <circle cx="14" cy="12" r="5.5" fill="none" stroke="#C9A227" stroke-width="1.2"/>
+        <text x="14" y="16" text-anchor="middle" font-size="8" fill="#C9A227" font-family="sans-serif">♻</text>
+      </svg>
+      <div>
+        <div class="logo-name">Uni<span>Clean</span></div>
+        <div class="logo-sub">BY RE-VERSAL</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="db-pill" id="db-pill" style="display:none">
+        <div class="db-dot" id="db-dot"></div>
+        <span id="db-txt"></span>
+      </div>
+      <button class="btn-cta" onclick="openReport()">🔴 Report</button>
+    </div>
+  </div>
+</header>
+
+<!-- PAGES -->
+<main>
+
+<!-- ═══ FEED ═══ -->
+<div id="page-feed" class="page active">
+  <div class="container">
+    <div class="setup-banner" id="setup-banner">
+      <span style="color:var(--gold)">⚙️ DATABASE NOT CONNECTED</span> — Reports are saving locally only. Go to Admin → Setup to connect Supabase.
+    </div>
+    <div class="hero">
+      <h1>See it. Report it. <em>Resolve it.</em></h1>
+      <p>Environmental issues documented by citizens, mapped in real-time. No login. No app. Just your phone.</p>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-n" id="s-total">0</div><div class="stat-l">REPORTS</div></div>
+        <div class="stat-box"><div class="stat-n" id="s-claimed">0</div><div class="stat-l">CLAIMED</div></div>
+        <div class="stat-box"><div class="stat-n" id="s-resolved">0</div><div class="stat-l">RESOLVED</div></div>
+      </div>
+    </div>
+
+    <!-- Unclaimed alerts -->
+    <div id="unclaimed-alerts"></div>
+
+    <div class="frow" id="feed-filters">
+      <button class="chip on" onclick="filterFeed('All',this)">All</button>
+      <button class="chip" onclick="filterFeed('Spotted',this)">🐠 Spotted</button>
+      <button class="chip" onclick="filterFeed('Claimed',this)">🤝 Claimed</button>
+      <button class="chip" onclick="filterFeed('Progress',this)">🔨 In Progress</button>
+      <button class="chip" onclick="filterFeed('Resolved',this)">✅ Resolved</button>
+      <button class="chip" onclick="filterFeed('Unclaimed',this)">⚠️ Unclaimed</button>
+    </div>
+    <div class="feed" id="feed-list"></div>
+    <div class="page-footer">A platform by RE-versal</div>
+  </div>
+</div>
+
+<!-- ═══ MAP ═══ -->
+<div id="page-map" class="page">
+  <div class="container">
+    <div class="sec-lbl">Community Map</div>
+    <div class="frow" id="map-filters" style="margin-bottom:10px;">
+      <button class="chip on" onclick="filterMap('All',this)">All</button>
+      <button class="chip" onclick="filterMap('Unresolved',this)">🔴 Unresolved</button>
+      <button class="chip" onclick="filterMap('Resolved',this)">✅ Resolved</button>
+      <button class="chip" onclick="filterMap('Unclaimed',this)">⚠️ Unclaimed</button>
+      <button class="chip" onclick="filterMap('Litter',this)">🗑 Litter</button>
+      <button class="chip" onclick="filterMap('Dumping',this)">⚠️ Dumping</button>
+      <button class="chip" onclick="filterMap('Water',this)">💧 Water</button>
+    </div>
+    <div id="map-c"></div>
+    <div class="map-legend">
+      <div class="map-leg-i"><div class="map-dot" style="background:#D32F2F"></div>Unresolved</div>
+      <div class="map-leg-i"><div class="map-dot" style="background:#388E3C"></div>Resolved</div>
+      <div class="map-leg-i"><div class="map-dot" style="background:#d4820a;animation:pulse 2s infinite"></div>Unclaimed (escalated)</div>
+    </div>
+    <div class="page-footer">A platform by RE-versal</div>
+  </div>
+</div>
+
+<!-- ═══ QR ═══ -->
+<div id="page-qr" class="page">
+  <div class="container">
+    <div class="sec-lbl">QR Code</div>
+    <div class="qr-card">
+      <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;color:var(--pale);margin-bottom:4px">Scan to Report or Claim</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">Post at schools, markets, municipalities, events. Anyone scans and acts — no app, no registration.</div>
+      <div id="qr-canvas"></div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);word-break:break-all;margin-top:8px;" id="qr-url"></div>
+    </div>
+    <button class="btn-primary" onclick="downloadQR()">⬇️ Download QR Code</button>
+    <div class="ib" style="margin-top:13px;">
+      <h3>How to deploy</h3>
+      <ul>
+        <li>Print A5 or A4 and post at the location</li>
+        <li>Anyone scans with their phone camera — opens directly in browser</li>
+        <li>They can report an issue or claim an existing one instantly</li>
+        <li>No app download. No account. No friction.</li>
+      </ul>
+    </div>
+    <div class="page-footer">A platform by RE-versal</div>
+  </div>
+</div>
+
+<!-- ═══ ACTIONS ═══ -->
+<div id="page-actions" class="page">
+  <div class="container">
+    <div class="action-hero">
+      <h2>🤝 Take Action</h2>
+      <p>Every report is a call. Individuals, youth groups, NGOs, businesses, and governments — claim a cleanup, post your progress, and let the community watch you deliver.</p>
+      <div class="entity-grid">
+        <div class="entity-card" onclick="showPage('feed');filterFeed('Spotted',document.querySelector('.chip'))">
+          <div class="ec-ic">👤</div>
+          <div class="ec-t">Individual</div>
+          <div class="ec-s">Citizen volunteers<br>cleaning their community</div>
+        </div>
+        <div class="entity-card" onclick="showPage('feed');filterFeed('Spotted',document.querySelector('.chip'))">
+          <div class="ec-ic">👥</div>
+          <div class="ec-t">Youth Group</div>
+          <div class="ec-s">Student orgs &amp; youth<br>movements taking charge</div>
+        </div>
+        <div class="entity-card" onclick="showPage('feed');filterFeed('Spotted',document.querySelector('.chip'))">
+          <div class="ec-ic">🏢</div>
+          <div class="ec-t">NGO / Business</div>
+          <div class="ec-s">Organisations &amp; companies<br>with cleanup capacity</div>
+        </div>
+        <div class="entity-card" onclick="showPage('feed');filterFeed('Spotted',document.querySelector('.chip'))">
+          <div class="ec-ic">🏛️</div>
+          <div class="ec-t">Government</div>
+          <div class="ec-s">Municipalities &amp; agencies<br>fulfilling public duty</div>
+        </div>
+      </div>
+      <button class="btn-gold" onclick="showPage('feed');setTimeout(()=>{const c=document.querySelector('#feed-filters .chip:nth-child(2)');if(c){currentFilter='Spotted';document.querySelectorAll('#feed-filters .chip').forEach(b=>b.classList.remove('on'));c.classList.add('on');renderFeed();}},150)">📋 View Open Reports to Claim →</button>
+    </div>
+
+    <div class="sec-lbl">Claimed — Public Accountability Record</div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;">Every claim is public. Name, entity, and progress are permanently recorded.</div>
+    <div id="actions-claimed-feed"></div>
+
+    <div class="sec-lbl" style="margin-top:18px;">Resolved — Permanent Record</div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:10px;">These cleanups are done. The record exists forever.</div>
+    <div id="actions-resolved-feed"></div>
+
+    <div class="sec-lbl" style="margin-top:18px;">Export Data</div>
+    <div class="ib">
+      <h3>Download Report Data</h3>
+      <p>For grant applications, municipal reporting, or internal tracking. Includes all lifecycle data.</p>
+      <div class="exp-row">
+        <button class="btn-exp" onclick="exportCSV()">📄 Export CSV</button>
+        <button class="btn-exp" onclick="exportExcel()">📊 Export Excel</button>
+      </div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);padding:0 2px;margin-bottom:10px;" id="export-count"></div>
+
+    <div class="page-footer">A platform by RE-versal</div>
+  </div>
+</div>
+
+<!-- ═══ EXPORT (kept for direct access) ═══ -->
+<div id="page-export" class="page">
+  <div class="container">
+    <div class="sec-lbl">Data Export</div>
+    <div class="ib">
+      <h3>Export All Reports</h3>
+      <p>For municipal reporting, grant applications, or environmental monitoring. Includes full lifecycle data.</p>
+      <div class="exp-row">
+        <button class="btn-exp" onclick="exportCSV()">📄 CSV</button>
+        <button class="btn-exp" onclick="exportExcel()">📊 Excel</button>
+      </div>
+    </div>
+    <div class="ib">
+      <h3>Included fields</h3>
+      <ul>
+        <li>Report ID · Date & Time · Category · Severity</li>
+        <li>Description · GPS Coordinates</li>
+        <li>Stage (Spotted/Claimed/In Progress/Resolved/Unclaimed)</li>
+        <li>Claimer Name · Entity Type · Resolution Date</li>
+        <li>Support Count · Photo URL</li>
+      </ul>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);padding:0 2px;" id="export-count2"></div>
+    <div class="page-footer">A platform by RE-versal</div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div id="page-admin" class="page">
+  <div class="container">
+    <div id="admin-gate">
+      <div class="adm-locked-ic">🔒</div>
+      <div class="adm-locked-t">Admin Dashboard</div>
+      <div class="adm-locked-s">Pilot administrators only.<br>Monitor reports, manage lifecycle, export data.</div>
+      <div class="fg" style="width:100%;max-width:270px;">
+        <input class="fi" id="adm-pw" type="password" placeholder="Admin password" style="text-align:center;letter-spacing:3px;" onkeydown="if(event.key==='Enter')checkAdminPw()"/>
+      </div>
+      <button class="btn-primary" style="max-width:270px;margin-top:8px;" onclick="checkAdminPw()">Unlock →</button>
+    </div>
+
+    <div class="adm-dash" id="adm-dash">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 14px;">
+        <div style="font-family:'Fraunces',serif;font-size:19px;font-weight:900;color:var(--pale);">📊 Admin</div>
+        <div style="display:flex;gap:7px;">
+          <button class="btn-sm" onclick="loadAdminData()">🔄</button>
+          <button class="btn-sm" onclick="lockAdmin()">🔒 Lock</button>
+        </div>
+      </div>
+
+      <div class="adm-sg">
+        <div class="adm-s"><div class="adm-n" id="a-total">0</div><div class="adm-l">TOTAL</div></div>
+        <div class="adm-s"><div class="adm-n" id="a-today">0</div><div class="adm-l">TODAY</div></div>
+        <div class="adm-s"><div class="adm-n" id="a-open">0</div><div class="adm-l">OPEN</div><div class="adm-sub" style="color:var(--red2)">Needs attention</div></div>
+        <div class="adm-s"><div class="adm-n" id="a-res">0</div><div class="adm-l">RESOLVED</div><div class="adm-sub" style="color:var(--sprout)">Cleaned up</div></div>
+      </div>
+
+      <div class="adm-sec">
+        <div class="adm-sec-hdr"><div class="adm-sec-t">BY CATEGORY</div></div>
+        <div style="padding:11px 14px;" id="adm-cats"></div>
+      </div>
+
+      <div class="adm-sec">
+        <div class="adm-sec-hdr">
+          <div class="adm-sec-t">ALL REPORTS MAP</div>
+          <span id="adm-map-cnt" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);"></span>
+        </div>
+        <div id="adm-map-c" class="adm-map"></div>
+      </div>
+
+      <div class="adm-sec">
+        <div class="adm-sec-hdr">
+          <div class="adm-sec-t">REPORTS</div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn-sm sel" id="af-all" onclick="admFilter('all')">All</button>
+            <button class="btn-sm" id="af-open" onclick="admFilter('open')">Open</button>
+            <button class="btn-sm" id="af-res" onclick="admFilter('resolved')">Resolved</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="adm-tbl">
+            <thead><tr><th>ID</th><th>PHOTO</th><th>CAT</th><th>DESCRIPTION</th><th>STAGE</th><th>CLAIMER</th><th>DATE</th><th>ACT</th></tr></thead>
+            <tbody id="adm-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Escalation config -->
+      <div class="adm-sec">
+        <div class="adm-sec-hdr"><div class="adm-sec-t">⚙️ ESCALATION CONFIG</div></div>
+        <div style="padding:13px 15px;">
+          <div class="fg">
+            <label class="fl">Escalation Contact Email</label>
+            <input class="fi" id="esc-email" placeholder="admin@uniclean.org" value=""/>
+          </div>
+          <div class="fg">
+            <label class="fl">Unclaimed Window (hours)</label>
+            <input class="fi" id="esc-hours" type="number" value="24" min="1" max="168"/>
+          </div>
+          <div class="fg">
+            <label class="fl">Duplicate Radius (metres)</label>
+            <input class="fi" id="esc-radius" type="number" value="50" min="10" max="500"/>
+          </div>
+          <button class="btn-primary" onclick="saveEscConfig()">Save Config</button>
+        </div>
+      </div>
+
+      <!-- SQL Setup -->
+      <div class="ib" style="margin-top:12px;">
+        <h3>⚙️ Supabase Setup</h3>
+        <p id="adm-setup-status" style="margin-bottom:9px;"></p>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.9;">
+          1. <a href="https://supabase.com" target="_blank" style="color:var(--gold)">supabase.com</a> → New project<br>
+          2. Settings → API → copy Project URL + anon key<br>
+          3. Replace values at top of this file<br>
+          4. Run the SQL below in Supabase SQL Editor
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border2);border-radius:var(--r8);padding:11px;margin-top:9px;overflow-x:auto;">
+          <pre id="sql-block" style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--sprout);line-height:1.8;white-space:pre-wrap;">CREATE TABLE reports (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  report_id TEXT,
+  category TEXT NOT NULL,
+  severity TEXT DEFAULT 'Medium',
+  description TEXT,
+  photo_url TEXT,
+  video_name TEXT,
+  latitude FLOAT,
+  longitude FLOAT,
+  coordinates TEXT,
+  location_source TEXT,
+  stage TEXT DEFAULT 'Spotted',
+  claimer_name TEXT,
+  claimer_entity TEXT,
+  claimed_at TIMESTAMPTZ,
+  resolved_at TIMESTAMPTZ,
+  resolution_note TEXT,
+  support_count INT DEFAULT 0,
+  escalated BOOLEAN DEFAULT false,
+  date_str TEXT,
+  time_str TEXT
+);
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public insert" ON reports FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public read" ON reports FOR SELECT USING (true);
+CREATE POLICY "Public update" ON reports FOR UPDATE USING (true);</pre>
+        </div>
+        <button class="btn-sm" style="margin-top:9px;width:100%" onclick="copySQL()">📋 Copy SQL</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ABOUT ═══ -->
+<div id="page-about" class="page">
+  <div class="container">
+    <div class="sec-lbl">About UniClean</div>
+    <div class="ib">
+      <h3>See it. Report it. Resolve it.</h3>
+      <p>UniClean is a community environmental reporting platform by RE-versal. Citizens document pollution, illegal dumping, and environmental damage. Reports are pinned on a live public map — creating visibility, accountability, and action.</p>
+    </div>
+    <div class="ib">
+      <h3>The Five Stages</h3>
+      <ul>
+        <li>🐠 <strong style="color:var(--pale)">Spotted</strong> — Issue photographed and GPS-pinned</li>
+        <li>🤝 <strong style="color:var(--pale)">Claimed</strong> — Individual, NGO, business or government publicly commits</li>
+        <li>🔨 <strong style="color:var(--pale)">In Progress</strong> — Cleanup updates posted live</li>
+        <li>✅ <strong style="color:var(--pale)">Resolved</strong> — After-photos confirm cleanup. Record is permanent.</li>
+        <li>⚠️ <strong style="color:var(--pale)">Unclaimed</strong> — Auto-escalated to admin if no one acts in time</li>
+      </ul>
+    </div>
+    <div class="ib">
+      <h3>Built for pilots</h3>
+      <p>Municipalities · Trade fairs · Schools · NGOs · Community campaigns. Share the QR code — anyone scans and reports in under 60 seconds. No login. No app.</p>
+    </div>
+    <div class="ib">
+      <h3>By RE-versal</h3>
+      <p>UniClean is a product of Excellent Global Conceptional. Amplifying community voices and driving environmental accountability across Africa and beyond.</p>
+    </div>
+    <div class="page-footer">A platform by RE-versal</div>
+  </div>
+</div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<div id="bnav">
+  <button class="bn on" data-p="feed" onclick="showPage('feed',this)"><div class="bn-ic">📋</div>FEED</button>
+  <button class="bn" data-p="map" onclick="showPage('map',this)"><div class="bn-ic">🗺️</div>MAP</button>
+  <button class="bn-fab" onclick="openReport()">🔴</button>
+  <button class="bn" data-p="actions" onclick="showPage('actions',this)"><div class="bn-ic">🤝</div>ACTIONS</button>
+  <button class="bn" data-p="admin" onclick="showPage('admin',this)"><div class="bn-ic">🔒</div>ADMIN</button>
+</div>
+
+<!-- ══ REPORT MODAL ══ -->
+<div class="mo" id="mo-report" onclick="cobM(event,'mo-report')">
+  <div class="ms"><div class="mhandle"></div>
+    <div class="mhdr"><div class="mhdr-t" id="rmo-t">🔴 Report an Issue</div><button class="mcl" onclick="closeModal('mo-report')">✕</button></div>
+    <div class="mc" id="rmo-c"></div>
+  </div>
+</div>
+
+<!-- ══ DETAIL MODAL ══ -->
+<div class="mo" id="mo-det" onclick="cobM(event,'mo-det')">
+  <div class="ms"><div class="mhandle"></div>
+    <div class="mhdr"><div class="mhdr-t">Report Details</div><button class="mcl" onclick="closeModal('mo-det')">✕</button></div>
+    <div class="mc" id="det-c"></div>
+  </div>
+</div>
+
+<!-- ══ CLAIM MODAL ══ -->
+<div class="mo" id="mo-claim" onclick="cobM(event,'mo-claim')">
+  <div class="ms"><div class="mhandle"></div>
+    <div class="mhdr"><div class="mhdr-t">🤝 Claim This Cleanup</div><button class="mcl" onclick="closeModal('mo-claim')">✕</button></div>
+    <div class="mc" id="claim-c"></div>
+  </div>
+</div>
+
+<!-- ══ DUPLICATE MODAL ══ -->
+<div class="mo" id="mo-dup" onclick="cobM(event,'mo-dup')">
+  <div class="ms"><div class="mhandle"></div>
+    <div class="mhdr"><div class="mhdr-t">⚠️ Similar Report Nearby</div><button class="mcl" onclick="closeModal('mo-dup')">✕</button></div>
+    <div class="mc" id="dup-c"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════
+// DATA & STATE
+// ═══════════════════════════════
+let reports = JSON.parse(localStorage.getItem('uc_v7_reports') || '[]');
+let currentFilter = 'All';
+let mapFilter = 'All';
+let mapInst = null, mapMarkers = [];
+let admMapInst = null, admMapMarkers = [];
+let rStep = 1, rf = {};
+let admUnlocked = false, admFilter_ = 'all';
+let dbOk = false;
+let claimingId = null;
+let escConfig = JSON.parse(localStorage.getItem('uc_esc_config') || '{"email":"","hours":24,"radius":50}');
+let reportCounter = parseInt(localStorage.getItem('uc_counter') || '0');
+
+const CATS = [
+  {k:'Litter',l:'🗑 Litter',c:'#D32F2F'},
+  {k:'Dumping',l:'⚠️ Illegal Dumping',c:'#c0392b'},
+  {k:'Bin',l:'🪣 Overflowing Bin',c:'#1B6B2A'},
+  {k:'Burning',l:'🔥 Waste Burning',c:'#b43210'},
+  {k:'Water',l:'💧 Water Pollution',c:'#1a4a7a'},
+  {k:'Drainage',l:'🚧 Blocked Drainage',c:'#1a6a7a'},
+  {k:'Other',l:'📌 Other',c:'#546e7a'},
+];
+const ENTITY_TYPES = ['Individual','Youth Group','NGO','Business','Municipality','Government Body','School','Community Org','Other'];
+const STAGE_LABELS = {
+  Spotted:'🐠 Spotted',Claimed:'🤝 Claimed',Progress:'🔨 In Progress',Resolved:'✅ Resolved',Unclaimed:'⚠️ Unclaimed'
+};
+
+function catC(k){return (CATS.find(c=>c.k===k)||{c:'#546e7a'}).c;}
+function catL(k){return (CATS.find(c=>c.k===k)||{l:k}).l;}
+function nextId(){reportCounter++;localStorage.setItem('uc_counter',reportCounter);return 'UC-'+String(reportCounter).padStart(4,'0');}
+function save(){localStorage.setItem('uc_v7_reports',JSON.stringify(reports));}
+
+// ═══════════════════════════════
+// SUPABASE
+// ═══════════════════════════════
+async function sb(path,opts={}){
+  if(!IS_CONFIGURED)return null;
+  const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{
+    headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...(opts.headers||{})},
+    method:opts.method||'GET',
+    body:opts.body?JSON.stringify(opts.body):undefined
+  });
+  if(!r.ok)throw new Error(await r.text());
+  if(r.status===204)return null;
+  return r.json();
+}
+
+async function checkDB(){
+  if(!IS_CONFIGURED){setDB('off','Not configured');document.getElementById('setup-banner').classList.add('show');return;}
+  try{await sb('reports?limit=1');dbOk=true;setDB('on','Connected');document.getElementById('setup-banner').classList.remove('show');}
+  catch(e){dbOk=false;setDB('err','DB Error');}
+}
+
+function setDB(state,text){
+  const dot=document.getElementById('db-dot');
+  const pill=document.getElementById('db-pill');
+  const txt=document.getElementById('db-txt');
+  if(dot){dot.className='db-dot';if(state!=='off')dot.classList.add(state==='on'?'on':'err');}
+  if(pill)pill.style.display=state==='off'?'none':'flex';
+  if(txt)txt.textContent=text;
+}
+
+// ═══════════════════════════════
+// NAV
+// ═══════════════════════════════
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);if(pg)pg.classList.add('active');
+  document.querySelectorAll('.bn').forEach(b=>b.classList.remove('on'));
+  const bb=document.querySelector(`.bn[data-p="${id}"]`);if(bb)bb.classList.add('on');
+  if(id==='map')setTimeout(initMap,80);
+  if(id==='qr')initQR();
+  if(id==='export'||id==='actions'){updateExportCount();if(id==='actions')renderActionsFeed();}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ═══════════════════════════════
+// REPORT MODAL
+// ═══════════════════════════════
+function openReport(){
+  rf={cat:'',sev:'Medium',desc:'',photo:null,lat:null,lng:null,coords:'',locSrc:''};
+  rStep=1; renderRStep();
+  openModal('mo-report');
+}
+
+function renderRStep(){
+  const el=document.getElementById('rmo-c');
+  const title=document.getElementById('rmo-t');
+
+  if(rStep===99){
+    const r=reports[0];
+    title.textContent='✅ Report Submitted';
+    el.innerHTML=`<div class="suc">
+      <div class="suc-ic">✅</div>
+      <div class="suc-id">${r.rid}</div>
+      <div class="suc-t">Report is Live!</div>
+      <div class="suc-s">Your report is on the public map. The community can now see it and claim the cleanup.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;">
+        <span class="stage stage-Spotted">${STAGE_LABELS.Spotted}</span>
+        <span class="cat cat-${r.cat}">${catL(r.cat)}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${r.timeStr} · ${r.dateStr}</span>
+      </div>
+      <div class="suc-mini-map" id="suc-map"></div>
+      <button class="btn-primary" onclick="closeModal('mo-report');showPage('map')">🗺️ View on Map</button>
+      <div style="margin-top:8px;"></div>
+      <button class="btn-secondary" onclick="openReport()">Submit Another</button>
+    </div>`;
+    if(r.lat&&r.lng){
+      setTimeout(()=>{
+        const m=L.map('suc-map',{zoomControl:false,attributionControl:false}).setView([r.lat,r.lng],14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
+        L.circleMarker([r.lat,r.lng],{radius:10,fillColor:catC(r.cat),color:'#fff',weight:2,fillOpacity:.9}).addTo(m);
+      },200);
+    }
+    return;
+  }
+
+  const stepBar=`<div class="step-bar">
+    <div class="sd ${rStep>=1?'active':''}" >1</div><div class="sl ${rStep>1?'done':''}"></div>
+    <div class="sd ${rStep===2?'active':rStep>2?'done':''}">${rStep>2?'✓':'2'}</div><div class="sl ${rStep>2?'done':''}"></div>
+    <div class="sd ${rStep===3?'active':''}">3</div>
+  </div>`;
+
+  if(rStep===1){
+    title.textContent='🔴 Step 1 — Issue & Photo';
+    el.innerHTML=`${stepBar}
+      <div class="fg"><label class="fl">Category <span style="color:var(--red)">*</span></label>
+        <div class="opts" id="cat-opts">${CATS.map(c=>`<button class="opt${rf.cat===c.k?' sel':''}" onclick="selCat('${c.k}',this)">${c.l}</button>`).join('')}</div>
+      </div>
+      <div class="fg"><label class="fl">Severity</label>
+        <div class="opts" id="sev-opts">
+          ${['Low','Medium','High'].map(s=>`<button class="opt${rf.sev===s?' sel':''}" onclick="selSev('${s}',this)">${s}</button>`).join('')}
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Photo <span style="color:var(--red)">*</span></label>
+        <div class="cam-zone">
+          <input type="file" accept="image/*" onchange="handlePhoto(this)"/>
+          <div class="cam-ph" id="cam-ph"><div class="ci">📸</div><div class="ct">Take Photo or Upload Image</div><div class="cs">Camera · Gallery · Screenshots — all accepted</div></div>
+          <img class="cam-prev" id="cam-prev"/>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Video (optional)</label>
+        <div class="cam-zone" style="min-height:72px;">
+          <input type="file" accept="video/*" onchange="handleVideo(this)"/>
+          <div class="cam-ph"><div class="ci" style="font-size:24px">🎥</div><div class="ct">Record or Upload Video</div><div class="cs">Live video · Gallery video — both accepted</div></div>
+        </div>
+        <div id="vid-lbl" style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--sprout);margin-top:4px;"></div>
+      </div>
+      <button class="btn-primary" onclick="step1Next()">Next →</button>`;
+  }
+
+  if(rStep===2){
+    title.textContent='📝 Step 2 — Description';
+    el.innerHTML=`${stepBar}
+      <div class="fg"><label class="fl">Describe the Issue <span style="color:var(--red)">*</span></label>
+        <textarea class="fta" id="rf-desc" placeholder="What did you see? How bad is it? Any specific details..." maxlength="500">${rf.desc}</textarea>
+        <div class="fhint">Max 500 characters</div>
+      </div>
+      <div style="display:flex;gap:9px;">
+        <button class="btn-secondary" style="flex:1" onclick="rStep=1;renderRStep()">← Back</button>
+        <button class="btn-primary" style="flex:2" onclick="step2Next()">Next →</button>
+      </div>`;
+  }
+
+  if(rStep===3){
+    title.textContent='📍 Step 3 — Location';
+    el.innerHTML=`${stepBar}
+      <div class="fg">
+        <div style="background:rgba(27,107,42,.1);border:1px solid rgba(45,140,66,.25);border-radius:var(--r12);padding:13px 14px;margin-bottom:11px;">
+          <div style="font-size:20px;margin-bottom:6px;">📍</div>
+          <div style="font-family:'Fraunces',serif;font-size:13.5px;font-weight:700;color:var(--pale);margin-bottom:3px;">Allow Location Access</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.65;margin-bottom:10px;">UniClean needs your GPS to pin this report accurately on the community map.</div>
+          <div style="display:flex;gap:7px;">
+            <button class="btn-primary" style="font-size:11px;padding:9px;" onclick="getLoc()">📍 Use My Location</button>
+            <button class="btn-secondary" style="font-size:11px;padding:9px;flex:1" onclick="document.getElementById('manual-loc').style.display='block'">✏️ Manual</button>
+          </div>
+        </div>
+        <div class="loc-bar"><div style="font-size:16px">🌐</div><div class="loc-txt${rf.coords?' ok':''}" id="loc-txt">${rf.coords?'📍 '+rf.coords:'Waiting…'}</div></div>
+        <input class="fi" id="manual-loc" placeholder="e.g. 6.5244, 3.3792" style="display:none;margin-top:7px;" value="${rf.coords}" oninput="setManualLoc(this.value)"/>
+      </div>
+      <div style="display:flex;gap:9px;">
+        <button class="btn-secondary" style="flex:1" onclick="rStep=2;renderRStep()">← Back</button>
+        <button class="btn-primary" style="flex:2" onclick="submitReport()">Submit Report ✓</button>
+      </div>`;
+  }
+}
+
+function selCat(k,btn){rf.cat=k;document.querySelectorAll('#cat-opts .opt').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+function selSev(s,btn){rf.sev=s;document.querySelectorAll('#sev-opts .opt').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+
+function handlePhoto(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{rf.photo=e.target.result;
+    const p=document.getElementById('cam-prev'),ph=document.getElementById('cam-ph');
+    if(p){p.src=rf.photo;p.style.display='block';}if(ph)ph.style.display='none';};
+  r.readAsDataURL(f);
+}
+function handleVideo(inp){const f=inp.files[0];if(!f)return;rf.video=f.name;const l=document.getElementById('vid-lbl');if(l)l.textContent='🎥 '+f.name;}
+
+function step1Next(){
+  if(!rf.cat){showToast('Please select a category');return;}
+  if(!rf.photo){showToast('Please take a photo');return;}
+  rStep=2;renderRStep();
+}
+function step2Next(){
+  const d=document.getElementById('rf-desc');if(d)rf.desc=d.value.trim();
+  if(!rf.desc){showToast('Please add a description');return;}
+  rStep=3;renderRStep();
+}
+function getLoc(){
+  const lt=document.getElementById('loc-txt');
+  if(lt){lt.textContent='⏳ Getting location…';lt.classList.remove('ok');}
+  if(!navigator.geolocation){showToast('GPS unavailable','err');return;}
+  navigator.geolocation.getCurrentPosition(p=>{
+    rf.lat=p.coords.latitude;rf.lng=p.coords.longitude;
+    rf.coords=p.coords.latitude.toFixed(6)+', '+p.coords.longitude.toFixed(6);
+    rf.locSrc='GPS (±'+Math.round(p.coords.accuracy)+'m)';
+    if(lt){lt.textContent='📍 '+rf.coords;lt.classList.add('ok');}
+    showToast('Location locked ✓');
+    checkDuplicates();
+  },()=>{if(lt)lt.textContent='⚠️ Denied — enter manually';document.getElementById('manual-loc').style.display='block';},{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+}
+function setManualLoc(v){rf.coords=v.trim();const p=v.split(',');if(p.length===2){rf.lat=parseFloat(p[0]);rf.lng=parseFloat(p[1]);}}
+
+function checkDuplicates(){
+  if(!rf.lat||!rf.lng)return;
+  const radius=escConfig.radius||DUPLICATE_RADIUS_M;
+  const nearby=reports.filter(r=>{
+    if(!r.lat||!r.lng||r.stage==='Resolved')return false;
+    const dLat=(r.lat-rf.lat)*111000,dLng=(r.lng-rf.lng)*111000*Math.cos(rf.lat*Math.PI/180);
+    return Math.sqrt(dLat*dLat+dLng*dLng)<radius;
+  });
+  if(!nearby.length)return;
+  const nr=nearby[0];
+  const el=document.getElementById('dup-c');
+  el.innerHTML=`<div class="dup-card">
+    <div class="dup-card-t">⚠️ Open report ${radius}m away</div>
+    <div class="dup-card-desc"><strong style="color:var(--pale)">${catL(nr.cat)}</strong> — ${nr.desc.slice(0,80)}…</div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-bottom:10px;">${nr.rid} · ${nr.dateStr}</div>
+  </div>
+  <div class="fg"><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text);margin-bottom:11px;">Is this the same issue?</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-gold" style="flex:1;font-size:12px;padding:11px;" onclick="supportReport(${nr.id})">👍 Same issue — support it</button>
+      <button class="btn-secondary" style="flex:1;font-size:12px;padding:11px;" onclick="closeModal('mo-dup')">No — different issue</button>
+    </div>
+  </div>`;
+  openModal('mo-dup');
+}
+
+function supportReport(id){
+  const idx=reports.findIndex(r=>r.id===id);
+  if(idx>-1){reports[idx].supportCount=(reports[idx].supportCount||0)+1;save();}
+  closeModal('mo-dup');closeModal('mo-report');
+  renderFeed();showToast('Support added ✓','gold');
+}
+
+async function submitReport(){
+  const now=new Date();
+  const rid=nextId();
+  const report={
+    id:Date.now(),rid,
+    cat:rf.cat,sev:rf.sev||'Medium',desc:rf.desc,
+    photo:rf.photo,video:rf.video||null,
+    lat:rf.lat,lng:rf.lng,coords:rf.coords,locSrc:rf.locSrc,
+    date:now.toISOString(),
+    dateStr:now.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),
+    timeStr:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+    stage:'Spotted',
+    claimer:null,claimerEntity:null,claimedAt:null,resolvedAt:null,resNote:null,
+    supportCount:0,escalated:false,synced:false,
+    timeline:[{stage:'Spotted',time:now.toISOString(),note:'Report submitted'}]
+  };
+  reports.unshift(report);save();
+  if(IS_CONFIGURED){
+    try{
+      await sb('reports',{method:'POST',body:{report_id:rid,category:rf.cat,severity:rf.sev||'Medium',description:rf.desc,photo_url:rf.photo?'[photo]':null,video_name:rf.video||null,latitude:rf.lat,longitude:rf.lng,coordinates:rf.coords,location_source:rf.locSrc,stage:'Spotted',date_str:report.dateStr,time_str:report.timeStr,support_count:0}});
+      reports[0].synced=true;save();
+    }catch(e){console.warn('Supabase error',e);}
+  }
+  updateStats();renderFeed();rStep=99;renderRStep();
+  scheduleEscalation(report.id);
+}
+
+function renderActionsFeed(){
+  const claimedEl=document.getElementById('actions-claimed-feed');
+  const resolvedEl=document.getElementById('actions-resolved-feed');
+  if(!claimedEl||!resolvedEl)return;
+
+  const claimed=reports.filter(r=>['Claimed','Progress'].includes(r.stage));
+  const resolved=reports.filter(r=>r.stage==='Resolved');
+
+  if(!claimed.length){
+    claimedEl.innerHTML=`<div class="empty" style="padding:20px;"><div class="empty-ic">🤝</div><div class="empty-t">No claims yet</div><div class="empty-s">Be the first to claim a cleanup on the Feed.</div></div>`;
+  } else {
+    claimedEl.innerHTML=`<div class="claimed-feed">`+claimed.map(r=>`
+      <div class="claimed-card" onclick="openDet(${r.id})">
+        <div class="claimed-card-hdr">
+          <div class="claimer-badge">
+            <div class="claimer-av">${(r.claimerEntity||'?').charAt(0)}</div>
+            <div><div class="claimer-name">${r.claimer||'Anonymous'}</div><div class="claimer-entity">${r.claimerEntity||''}</div></div>
+          </div>
+          <span class="stage stage-${r.stage}">${STAGE_LABELS[r.stage]||r.stage}</span>
+        </div>
+        <div class="claimed-card-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span class="cat cat-${r.cat}">${catL(r.cat)}</span>
+            <span class="rcard-id">${r.rid}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${r.desc}</div>
+          <div class="progress-steps">
+            <span class="ps-step done">🐠 Spotted</span>
+            <span class="ps-step done">🤝 Claimed</span>
+            <span class="ps-step ${r.stage==='Progress'?'active':r.stage==='Resolved'?'done':''}">🔨 In Progress</span>
+            <span class="ps-step ${r.stage==='Resolved'?'done':''}">✅ Resolved</span>
+          </div>
+          ${r.claimedAt?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:6px;">Claimed ${new Date(r.claimedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>`:''}
+        </div>
+      </div>`).join('')+`</div>`;
+  }
+
+  if(!resolved.length){
+    resolvedEl.innerHTML=`<div class="empty" style="padding:20px;"><div class="empty-ic">✅</div><div class="empty-t">No resolved reports yet</div><div class="empty-s">Resolved cleanups will appear here permanently.</div></div>`;
+  } else {
+    resolvedEl.innerHTML=`<div class="claimed-feed">`+resolved.map(r=>`
+      <div class="claimed-card" onclick="openDet(${r.id})" style="border-color:rgba(56,142,60,.3);">
+        <div class="claimed-card-hdr" style="background:rgba(56,142,60,.07);border-bottom-color:rgba(56,142,60,.15);">
+          <div class="claimer-badge">
+            <div class="claimer-av" style="background:rgba(56,142,60,.2);border-color:#388E3C;">✅</div>
+            <div><div class="claimer-name" style="color:#81c784;">${r.claimer||'Community'}</div><div class="claimer-entity">${r.claimerEntity||''} · Resolved ${r.resolvedAt?new Date(r.resolvedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):''}</div></div>
+          </div>
+          <span class="stage stage-Resolved">✅ Resolved</span>
+        </div>
+        <div class="claimed-card-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span class="cat cat-${r.cat}">${catL(r.cat)}</span>
+            <span class="rcard-id">${r.rid}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${r.desc}</div>
+          ${r.resNote?`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--sprout);background:rgba(44,140,66,.08);padding:7px 10px;border-radius:8px;">✅ ${r.resNote.slice(0,100)}</div>`:''}
+        </div>
+      </div>`).join('')+`</div>`;
+  }
+  updateExportCount();
+}
+
+
+function scheduleEscalation(id){
+  const hours=(escConfig.hours||UNCLAIMED_HOURS)*3600000;
+  setTimeout(()=>{
+    const r=reports.find(x=>x.id===id);
+    if(r&&r.stage==='Spotted'&&!r.escalated){
+      const idx=reports.indexOf(r);
+      reports[idx].stage='Unclaimed';
+      reports[idx].escalated=true;
+      save();renderFeed();renderUnclaimedAlerts();
+      showToast('⚠️ Report '+r.rid+' escalated — unclaimed','err');
+      if(IS_CONFIGURED){sb(`reports?id=eq.${id}`,{method:'PATCH',prefer:'return=minimal',body:{stage:'Unclaimed',escalated:true}}).catch(()=>{});}
+    }
+  },hours);
+}
+
+function renderUnclaimedAlerts(){
+  const el=document.getElementById('unclaimed-alerts');if(!el)return;
+  const unc=reports.filter(r=>r.stage==='Unclaimed');
+  if(!unc.length){el.innerHTML='';return;}
+  el.innerHTML=unc.map(r=>`<div class="unclaimed-banner">⚠️ <strong>${r.rid}</strong> — ${catL(r.cat)} — unclaimed and escalated. <button class="btn-sm" style="margin-left:8px;" onclick="openClaim(${r.id})">Claim Now</button></div>`).join('');
+}
+
+// ═══════════════════════════════
+// FEED
+// ═══════════════════════════════
+function renderFeed(){
+  const el=document.getElementById('feed-list');
+  let data=currentFilter==='All'?reports:reports.filter(r=>{
+    if(currentFilter==='Spotted')return r.stage==='Spotted';
+    if(currentFilter==='Claimed')return r.stage==='Claimed';
+    if(currentFilter==='Progress')return r.stage==='Progress';
+    if(currentFilter==='Resolved')return r.stage==='Resolved';
+    if(currentFilter==='Unclaimed')return r.stage==='Unclaimed';
+    return true;
+  });
+  updateStats();
+  const ap=document.getElementById('page-actions');if(ap&&ap.classList.contains('active'))renderActionsFeed();
+  if(!data.length){el.innerHTML=`<div class="empty"><div class="empty-ic">🌍</div><div class="empty-t">No reports yet</div><div class="empty-s">Be the first in your community.</div></div>`;return;}
+  el.innerHTML=data.map(r=>`
+    <div class="rcard" onclick="openDet(${r.id})">
+      <div class="rcard-stripe" style="background:${r.stage==='Resolved'?'#388E3C':r.stage==='Unclaimed'?'#d4820a':'#D32F2F'}"></div>
+      ${r.stage==='Unclaimed'?`<div class="unclaimed-flag">⚠️ UNCLAIMED</div>`:''}
+      ${r.photo?`<img class="rcard-img" src="${r.photo}" loading="lazy"/>`:`<div class="rcard-img-ph">${catL(r.cat).split(' ')[0]}</div>`}
+      <div class="rcard-body">
+        <div class="rcard-row">
+          <span class="stage stage-${r.stage}">${STAGE_LABELS[r.stage]||r.stage}</span>
+          <span class="rcard-id">${r.rid}</span>
+        </div>
+        <div class="rcard-row">
+          <span class="cat cat-${r.cat}">${catL(r.cat)}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">${r.timeStr} · ${r.dateStr}</span>
+        </div>
+        <div class="rcard-desc">${r.desc}</div>
+        <div class="rcard-meta">
+          <span>📍 ${r.coords||'No GPS'}</span>
+          ${r.claimer?`<span>🤝 ${r.claimer}</span>`:''}
+          ${r.supportCount?`<span class="support-count">+${r.supportCount} supported</span>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterFeed(f,btn){currentFilter=f;document.querySelectorAll('#feed-filters .chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderFeed();}
+
+function updateStats(){
+  const s=id=>document.getElementById(id);
+  if(s('s-total'))s('s-total').textContent=reports.length;
+  if(s('s-claimed'))s('s-claimed').textContent=reports.filter(r=>['Claimed','Progress','Resolved'].includes(r.stage)).length;
+  if(s('s-resolved'))s('s-resolved').textContent=reports.filter(r=>r.stage==='Resolved').length;
+}
+
+// ═══════════════════════════════
+// DETAIL
+// ═══════════════════════════════
+function openDet(id){
+  const r=reports.find(x=>x.id===id);if(!r)return;
+  const el=document.getElementById('det-c');
+  const canClaim=r.stage==='Spotted'||r.stage==='Unclaimed';
+  const canResolve=r.stage==='Claimed'||r.stage==='Progress';
+
+  el.innerHTML=`
+    ${r.photo?`<img class="det-img" src="${r.photo}"/>`:`<div style="text-align:center;font-size:44px;margin-bottom:12px">${catL(r.cat).split(' ')[0]}</div>`}
+    <div class="det-h">${catL(r.cat)}</div>
+    <div class="det-mg">
+      <div class="det-mb"><div class="det-ml">STATUS</div><div class="det-mv"><span class="stage stage-${r.stage}">${STAGE_LABELS[r.stage]||r.stage}</span></div></div>
+      <div class="det-mb"><div class="det-ml">ID</div><div class="det-mv" style="color:var(--gold)">${r.rid}</div></div>
+      <div class="det-mb"><div class="det-ml">DATE</div><div class="det-mv">${r.dateStr}</div></div>
+      <div class="det-mb"><div class="det-ml">TIME</div><div class="det-mv">${r.timeStr}</div></div>
+      <div class="det-mb"><div class="det-ml">SEVERITY</div><div class="det-mv">${r.sev||'Medium'}</div></div>
+      <div class="det-mb"><div class="det-ml">SUPPORT</div><div class="det-mv">${r.supportCount||0} people</div></div>
+      <div class="det-mb" style="grid-column:1/-1"><div class="det-ml">GPS</div><div class="det-mv">${r.coords||'Not captured'}</div></div>
+      ${r.claimer?`<div class="det-mb" style="grid-column:1/-1"><div class="det-ml">CLAIMED BY</div><div class="det-mv" style="color:var(--gold2)">${r.claimer} · ${r.claimerEntity||''}</div></div>`:''}
+    </div>
+    <div class="det-desc">${r.desc}</div>
+
+    <div class="sec-lbl" style="margin-top:0">Lifecycle</div>
+    <div class="timeline" id="det-timeline"></div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${canClaim?`<button class="btn-gold" onclick="openClaim(${r.id});closeModal('mo-det')">🤝 Claim This Cleanup</button>`:''}
+      ${canResolve?`<button class="btn-primary" onclick="openResolve(${r.id});closeModal('mo-det')">✅ Submit Resolution</button>`:''}
+      ${r.stage==='Claimed'||r.stage==='Progress'?`<button class="btn-secondary" onclick="openUpdate(${r.id});closeModal('mo-det')">📸 Post Update</button>`:''}
+      <button class="btn-secondary" onclick="closeModal('mo-det')">Close</button>
+    </div>`;
+
+  // Render timeline
+  const tl=document.getElementById('det-timeline');
+  const tlData=r.timeline||[{stage:'Spotted',time:r.date,note:'Report submitted'}];
+  tl.innerHTML=tlData.map((t,i)=>{
+    const icons={Spotted:'🐠',Claimed:'🤝',Progress:'🔨',Resolved:'✅',Unclaimed:'⚠️'};
+    const colors={Spotted:'rgba(26,74,122,.3)',Claimed:'rgba(201,162,39,.2)',Progress:'rgba(212,130,10,.2)',Resolved:'rgba(56,142,60,.2)',Unclaimed:'rgba(211,47,47,.2)'};
+    const isLast=i===tlData.length-1;
+    return `<div class="tl-item">
+      <div class="tl-dot${isLast?' active':''}" style="background:${colors[t.stage]||'var(--surface2)'}">${icons[t.stage]||'•'}</div>
+      <div class="tl-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+          <span class="stage stage-${t.stage}" style="font-size:8.5px;">${STAGE_LABELS[t.stage]||t.stage}</span>
+          <span class="tl-time">${new Date(t.time).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
+        </div>
+        ${t.note?`<div class="tl-note">${t.note}</div>`:''}
+        ${t.by?`<div class="tl-claimant">by ${t.by}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  openModal('mo-det');
+}
+
+// ═══════════════════════════════
+// CLAIM
+// ═══════════════════════════════
+function openClaim(id){
+  claimingId=id;
+  const r=reports.find(x=>x.id===id);if(!r)return;
+  const el=document.getElementById('claim-c');
+  el.innerHTML=`
+    <div class="claim-box">
+      <div class="claim-box-t">You are publicly claiming responsibility</div>
+      <div class="claim-box-s">Your name will be attached to this report. You are now the named, accountable responder. No registration required.</div>
+    </div>
+    <div class="fg"><label class="fl">Your Name or Organisation <span style="color:var(--red)">*</span></label>
+      <input class="fi" id="claim-name" placeholder="e.g. City of Lagos Environmental Unit"/>
+    </div>
+    <div class="fg"><label class="fl">Entity Type <span style="color:var(--red)">*</span></label>
+      <div class="entity-opts" id="entity-opts">
+        ${ENTITY_TYPES.map(t=>`<button class="eopt" onclick="selEntity('${t}',this)">${t}</button>`).join('')}
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Estimated Resolution (days)</label>
+      <input class="fi" id="claim-eta" type="number" min="1" max="30" placeholder="e.g. 3" value=""/>
+    </div>
+    <button class="btn-gold" onclick="submitClaim()">🤝 Publicly Claim This Cleanup</button>
+    <div style="margin-top:7px;font-family:'DM Mono',monospace;font-size:9px;color:var(--dim);text-align:center;">Your name will be visible to the entire community</div>`;
+  openModal('mo-claim');
+}
+
+let selectedEntity='';
+function selEntity(t,btn){selectedEntity=t;document.querySelectorAll('.eopt').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
+
+async function submitClaim(){
+  const name=document.getElementById('claim-name').value.trim();
+  if(!name){showToast('Please enter your name');return;}
+  if(!selectedEntity){showToast('Please select entity type');return;}
+  const now=new Date();
+  const eta=document.getElementById('claim-eta').value;
+  const idx=reports.findIndex(r=>r.id===claimingId);
+  if(idx>-1){
+    reports[idx].stage='Claimed';
+    reports[idx].claimer=name;
+    reports[idx].claimerEntity=selectedEntity;
+    reports[idx].claimedAt=now.toISOString();
+    if(!reports[idx].timeline)reports[idx].timeline=[];
+    reports[idx].timeline.push({stage:'Claimed',time:now.toISOString(),note:`Claimed by ${name} (${selectedEntity})${eta?' · ETA: '+eta+' days':''}`,by:name});
+    save();
+    if(IS_CONFIGURED){sb(`reports?id=eq.${claimingId}`,{method:'PATCH',prefer:'return=minimal',body:{stage:'Claimed',claimer_name:name,claimer_entity:selectedEntity,claimed_at:now.toISOString()}}).catch(()=>{});}
+  }
+  closeModal('mo-claim');renderFeed();
+  showToast('Cleanup claimed! You are now accountable 🤝','gold');
+}
+
+// ═══════════════════════════════
+// UPDATE / RESOLVE
+// ═══════════════════════════════
+function openUpdate(id){
+  const r=reports.find(x=>x.id===id);if(!r)return;
+  const updates=(r.timeline||[]).filter(t=>t.stage==='Progress').length;
+  if(updates>=3){showToast('Max 3 updates reached — submit resolution','err');return;}
+  const mo=document.createElement('div');mo.className='mo';mo.id='mo-update';mo.innerHTML=`
+    <div class="ms"><div class="mhandle"></div>
+    <div class="mhdr"><div class="mhdr-t">📸 In-Progress Update</div><button class="mcl" onclick="this.closest('.mo').remove()">✕</button></div>
+    <div class="mc">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;">Update ${updates+1} of 3 · Only the claimer can post updates</div>
+      <div class="fg"><label class="fl">Update Photo</label>
+        <div class="cam-zone"><input type="file" accept="image/*" onchange="handleUpdatePhoto(this,${id})"/><div class="cam-ph"><div class="ci">📸</div><div class="ct">Take Update Photo</div></div><img class="cam-prev" id="upd-prev"/></div>
+      </div>
+      <div class="fg"><label class="fl">Update Note</label><textarea class="fta" id="upd-note" placeholder="What work is being done?" style="min-height:70px;"></textarea></div>
+      <button class="btn-primary" onclick="submitUpdate(${id})">Post Update</button>
+    </div></div>`;
+  mo.onclick=e=>{if(e.target===mo)mo.remove();};
+  document.body.appendChild(mo);setTimeout(()=>mo.classList.add('open'),10);
+}
+
+let updatePhoto=null;
+function handleUpdatePhoto(inp,id){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{updatePhoto=e.target.result;const p=document.getElementById('upd-prev');if(p){p.src=updatePhoto;p.style.display='block';}};r.readAsDataURL(f);}
+
+function submitUpdate(id){
+  const note=document.getElementById('upd-note').value.trim();
+  const now=new Date();
+  const idx=reports.findIndex(r=>r.id===id);
+  if(idx>-1){
+    reports[idx].stage='Progress';
+    if(!reports[idx].timeline)reports[idx].timeline=[];
+    reports[idx].timeline.push({stage:'Progress',time:now.toISOString(),note:note||'Update posted',photo:updatePhoto});
+    save();
+  }
+  document.getElementById('mo-update').remove();
+  updatePhoto=null;renderFeed();showToast('Update posted!');
+}
+
+function openResolve(id){
+  const r=reports.find(x=>x.id===id);if(!r)return;
+  const mo=document.createElement('div');mo.className='mo';mo.id='mo-resolve';mo.innerHTML=`
+    <div class="ms"><div class="mhandle"></div>
+    <div class="mhdr"><div class="mhdr-t">✅ Submit Resolution</div><button class="mcl" onclick="this.closest('.mo').remove()">✕</button></div>
+    <div class="mc">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:12px;">After-photo GPS must be within ${escConfig.radius||DUPLICATE_RADIUS_M}m of original report.</div>
+      <div class="fg"><label class="fl">After-Photo <span style="color:var(--red)">*</span></label>
+        <div class="cam-zone"><input type="file" accept="image/*" onchange="handleResPhoto(this)"/><div class="cam-ph"><div class="ci">📸</div><div class="ct">Take After-Photo</div></div><img class="cam-prev" id="res-prev"/></div>
+      </div>
+      <div class="fg"><label class="fl">Resolution Summary <span style="color:var(--red)">*</span></label><textarea class="fta" id="res-note" placeholder="Describe what was done, who was involved, and the outcome..." style="min-height:80px;"></textarea></div>
+      <div class="fg"><label class="fl">Stakeholder Acknowledgements (optional)</label><input class="fi" id="res-stake" placeholder="e.g. Lagos State Environmental Agency"/></div>
+      <button class="btn-primary" onclick="submitResolve(${id})">✅ Mark as Resolved</button>
+    </div></div>`;
+  mo.onclick=e=>{if(e.target===mo)mo.remove();};
+  document.body.appendChild(mo);setTimeout(()=>mo.classList.add('open'),10);
+}
+
+let resPhoto=null;
+function handleResPhoto(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{resPhoto=e.target.result;const p=document.getElementById('res-prev');if(p){p.src=resPhoto;p.style.display='block';}};r.readAsDataURL(f);}
+
+async function submitResolve(id){
+  const note=document.getElementById('res-note').value.trim();
+  if(!note){showToast('Please add a resolution summary');return;}
+  const now=new Date();
+  const idx=reports.findIndex(r=>r.id===id);
+  if(idx>-1){
+    reports[idx].stage='Resolved';reports[idx].resolvedAt=now.toISOString();reports[idx].resNote=note;
+    if(!reports[idx].timeline)reports[idx].timeline=[];
+    reports[idx].timeline.push({stage:'Resolved',time:now.toISOString(),note,photo:resPhoto,by:reports[idx].claimer});
+    save();
+    if(IS_CONFIGURED){sb(`reports?id=eq.${id}`,{method:'PATCH',prefer:'return=minimal',body:{stage:'Resolved',resolved_at:now.toISOString(),resolution_note:note}}).catch(()=>{});}
+  }
+  document.getElementById('mo-resolve').remove();resPhoto=null;
+  renderFeed();showToast('✅ Report resolved! The record is permanent.','gold');
+}
+
+// ═══════════════════════════════
+// MAP
+// ═══════════════════════════════
+function initMap(){
+  const el=document.getElementById('map-c');if(!el)return;
+  if(!mapInst){mapInst=L.map('map-c',{zoomControl:true,attributionControl:false}).setView([0,20],3);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapInst);}
+  renderMapPins();
+}
+
+function renderMapPins(){
+  if(!mapInst)return;
+  mapMarkers.forEach(m=>m.remove());mapMarkers=[];
+  let data=mapFilter==='All'?reports:mapFilter==='Resolved'?reports.filter(r=>r.stage==='Resolved'):mapFilter==='Unresolved'?reports.filter(r=>r.stage!=='Resolved'):mapFilter==='Unclaimed'?reports.filter(r=>r.stage==='Unclaimed'):reports.filter(r=>r.cat===mapFilter);
+  data.filter(r=>r.lat&&r.lng).forEach(r=>{
+    const c=r.stage==='Resolved'?'#388E3C':r.stage==='Unclaimed'?'#d4820a':'#D32F2F';
+    const m=L.circleMarker([r.lat,r.lng],{radius:10,fillColor:c,color:'#fff',weight:2,fillOpacity:.9}).addTo(mapInst)
+      .bindPopup(`<div style="font-family:sans-serif;min-width:180px;"><strong>${catL(r.cat)}</strong><br><span style="font-size:11px;color:#555">${r.desc.slice(0,70)}</span><br><span style="font-size:10px;background:${c};color:#fff;padding:1px 6px;border-radius:9px;display:inline-block;margin-top:4px;">${STAGE_LABELS[r.stage]||r.stage}</span><br><small style="color:#888">${r.dateStr}</small></div>`);
+    mapMarkers.push(m);
+  });
+  if(mapMarkers.length){const b=L.latLngBounds(data.filter(r=>r.lat).map(r=>[r.lat,r.lng]));mapInst.fitBounds(b,{padding:[30,30]});}
+}
+
+function filterMap(f,btn){mapFilter=f;document.querySelectorAll('#map-filters .chip').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderMapPins();}
+
+// ═══════════════════════════════
+// QR
+// ═══════════════════════════════
+function initQR(){
+  const el=document.getElementById('qr-canvas');
+  const url=window.location.href.split('#')[0];
+  document.getElementById('qr-url').textContent=url;
+  el.innerHTML='';
+  if(typeof QRCode!=='undefined'){new QRCode(el,{text:url,width:200,height:200,colorDark:'#0d1f10',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});}
+}
+function downloadQR(){const c=document.querySelector('#qr-canvas canvas');if(!c){showToast('QR not ready');return;}const a=document.createElement('a');a.download='uniclean-qr.png';a.href=c.toDataURL();a.click();showToast('QR downloaded!');}
+
+// ═══════════════════════════════
+// EXPORT
+// ═══════════════════════════════
+function updateExportCount(){
+  const txt=reports.length+' report'+(reports.length!==1?'s':'')+' available.';
+  const el=document.getElementById('export-count');if(el)el.textContent=txt;
+  const el2=document.getElementById('export-count2');if(el2)el2.textContent=txt;
+}
+function exportCSV(){
+  if(!reports.length){showToast('No reports');return;}
+  const h=['ID','Report ID','Date','Time','Category','Severity','Description','Latitude','Longitude','Coordinates','Stage','Claimer','Entity','Support Count','Synced'];
+  const rows=reports.map(r=>[r.id,r.rid,r.dateStr,r.timeStr,catL(r.cat).replace(/[^\w\s]/g,'').trim(),r.sev||'Medium','"'+(r.desc||'').replace(/"/g,'""')+'"',r.lat||'',r.lng||'',r.coords||'',r.stage,r.claimer||'',r.claimerEntity||'',r.supportCount||0,r.synced?'Yes':'No']);
+  const csv=[h,...rows].map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='uniclean-'+new Date().toISOString().slice(0,10)+'.csv';a.click();showToast('CSV exported!');
+}
+function exportExcel(){
+  if(!reports.length){showToast('No reports');return;}
+  const h=['ID','Report ID','Date','Time','Category','Severity','Description','Latitude','Longitude','Stage','Claimer','Entity','Support Count'];
+  const rows=reports.map(r=>[r.id,r.rid,r.dateStr,r.timeStr,catL(r.cat).replace(/[^\w\s]/g,'').trim(),r.sev||'Medium',(r.desc||'').replace(/\t/g,' '),r.lat||'',r.lng||'',r.stage,r.claimer||'',r.claimerEntity||'',r.supportCount||0]);
+  const tsv=[h,...rows].map(r=>r.join('\t')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([tsv],{type:'application/vnd.ms-excel'}));a.download='uniclean-'+new Date().toISOString().slice(0,10)+'.xls';a.click();showToast('Excel exported!');
+}
+
+// ═══════════════════════════════
+// ADMIN
+// ═══════════════════════════════
+function checkAdminPw(){
+  if(document.getElementById('adm-pw').value===ADMIN_PASSWORD){
+    admUnlocked=true;
+    document.getElementById('admin-gate').style.display='none';
+    document.getElementById('adm-dash').style.display='block';
+    loadAdminData();setTimeout(initAdmMap,300);
+    const ec=document.getElementById('esc-email');if(ec)ec.value=escConfig.email||'';
+    const eh=document.getElementById('esc-hours');if(eh)eh.value=escConfig.hours||24;
+    const er=document.getElementById('esc-radius');if(er)er.value=escConfig.radius||50;
+  }else{showToast('Incorrect password','err');document.getElementById('adm-pw').value='';}
+}
+function lockAdmin(){admUnlocked=false;document.getElementById('admin-gate').style.display='flex';document.getElementById('adm-dash').style.display='none';document.getElementById('adm-pw').value='';}
+function saveEscConfig(){
+  escConfig={email:document.getElementById('esc-email').value,hours:parseInt(document.getElementById('esc-hours').value)||24,radius:parseInt(document.getElementById('esc-radius').value)||50};
+  localStorage.setItem('uc_esc_config',JSON.stringify(escConfig));showToast('Config saved ✓');
+}
+
+async function loadAdminData(){
+  let data=[...reports];
+  if(IS_CONFIGURED){
+    try{const r=await sb('reports?order=created_at.desc&limit=500');
+      if(r&&r.length){const lids=new Set(reports.map(x=>x.id));
+        const rem=r.filter(x=>!lids.has(x.id)).map(x=>({id:x.id,rid:x.report_id||'?',cat:x.category,sev:x.severity||'Medium',desc:x.description,photo:x.photo_url,lat:x.latitude,lng:x.longitude,coords:x.coordinates,date:x.created_at,dateStr:x.date_str||new Date(x.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),timeStr:x.time_str||'',stage:x.stage||'Spotted',claimer:x.claimer_name,claimerEntity:x.claimer_entity,supportCount:x.support_count||0,synced:true}));
+        data=[...rem,...reports];setDB('on','Connected');}
+    }catch(e){setDB('err','DB Error');}
+  }
+  renderAdmStats(data);renderAdmTable(data);renderAdmCats(data);renderAdmMapPins(data);
+  const ss=document.getElementById('adm-setup-status');
+  if(ss)ss.innerHTML=IS_CONFIGURED&&dbOk?'<span style="color:var(--sprout)">✅ Supabase connected.</span>':IS_CONFIGURED?'<span style="color:var(--red2)">❌ Connected but erroring — check credentials.</span>':'<span style="color:var(--amber)">⚠️ Not configured — local only.</span>';
+}
+
+function renderAdmStats(data){
+  const today=data.filter(r=>{const d=new Date(r.date),n=new Date();return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();}).length;
+  const open=data.filter(r=>!['Resolved'].includes(r.stage)).length;
+  const res=data.filter(r=>r.stage==='Resolved').length;
+  ['a-total','a-today','a-open','a-res'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=[data.length,today,open,res][i];});
+}
+
+function renderAdmCats(data){
+  const el=document.getElementById('adm-cats');if(!el)return;
+  const cnt={};data.forEach(r=>{cnt[r.cat]=(cnt[r.cat]||0)+1;});const tot=data.length||1;
+  el.innerHTML=CATS.map(c=>{const n=cnt[c.k]||0,p=Math.round(n/tot*100);return `<div style="margin-bottom:7px;"><div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);margin-bottom:2px;"><span>${c.l}</span><span>${n} (${p}%)</span></div><div style="height:3px;background:var(--surface2);border-radius:2px;"><div style="height:3px;width:${p}%;background:${c.c};border-radius:2px;"></div></div></div>`;}).join('');
+}
+
+function renderAdmTable(data){
+  const tb=document.getElementById('adm-tbody');if(!tb)return;
+  const f=admFilter_==='all'?data:admFilter_==='open'?data.filter(r=>r.stage!=='Resolved'):data.filter(r=>r.stage==='Resolved');
+  if(!f.length){tb.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">No reports</td></tr>`;return;}
+  tb.innerHTML=f.map(r=>`<tr>
+    <td style="color:var(--gold);font-size:9.5px">${r.rid||'—'}</td>
+    <td>${r.photo?`<img src="${r.photo}" style="width:38px;height:38px;object-fit:cover;border-radius:5px;">`:'—'}</td>
+    <td><span class="cat cat-${r.cat}" style="font-size:9px">${catL(r.cat).replace(/[^\w\s]/g,'').trim()}</span></td>
+    <td style="max-width:120px;font-size:10px">${(r.desc||'').slice(0,50)}…</td>
+    <td><span class="stage stage-${r.stage}" style="font-size:8.5px">${STAGE_LABELS[r.stage]||r.stage}</span></td>
+    <td style="font-size:10px;color:var(--gold2)">${r.claimer||'—'}</td>
+    <td style="white-space:nowrap;font-size:9.5px">${r.dateStr||''}</td>
+    <td><button class="btn-danger" style="font-size:9px;padding:5px 9px;" onclick="admDelete(${r.id})">Del</button></td>
+  </tr>`).join('');
+}
+
+function admFilter(f){
+  admFilter_=f;
+  ['af-all','af-open','af-res'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='btn-sm';if(el.id==='af-'+f)el.classList.add('sel');}});
+  renderAdmTable(reports);
+}
+
+function admDelete(id){
+  if(!confirm('Delete this report permanently?'))return;
+  reports=reports.filter(r=>r.id!==id);save();
+  if(IS_CONFIGURED){sb(`reports?id=eq.${id}`,{method:'DELETE',prefer:'return=minimal'}).catch(()=>{});}
+  loadAdminData();renderFeed();showToast('Deleted');
+}
+
+function initAdmMap(){
+  const el=document.getElementById('adm-map-c');if(!el)return;
+  if(!admMapInst){admMapInst=L.map('adm-map-c',{zoomControl:true,attributionControl:false}).setView([0,20],2);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(admMapInst);}
+  renderAdmMapPins(reports);
+}
+
+function renderAdmMapPins(data){
+  if(!admMapInst)return;
+  admMapMarkers.forEach(m=>m.remove());admMapMarkers=[];
+  const wl=data.filter(r=>r.lat&&r.lng);
+  const cnt=document.getElementById('adm-map-cnt');if(cnt)cnt.textContent=wl.length+' pinned';
+  wl.forEach(r=>{const c=r.stage==='Resolved'?'#388E3C':r.stage==='Unclaimed'?'#d4820a':'#D32F2F';const m=L.circleMarker([r.lat,r.lng],{radius:7,fillColor:c,color:'#fff',weight:1.5,fillOpacity:.9}).addTo(admMapInst).bindPopup(`<b>${r.rid}</b> ${catL(r.cat)}<br>${STAGE_LABELS[r.stage]||r.stage}`);admMapMarkers.push(m);});
+  if(admMapMarkers.length){const b=L.latLngBounds(wl.map(r=>[r.lat,r.lng]));admMapInst.fitBounds(b,{padding:[20,20]});}
+}
+
+function copySQL(){navigator.clipboard.writeText(document.getElementById('sql-block').textContent).then(()=>showToast('SQL copied!')).catch(()=>showToast('Copy failed'));}
+
+// ═══════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+function cobM(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+
+// ═══════════════════════════════
+// TOAST
+// ═══════════════════════════════
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='show'+(type?' '+type:'');setTimeout(()=>t.className='',2900);}
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+renderFeed();
+renderUnclaimedAlerts();
+updateStats();
+checkDB();
+// Check escalation for existing reports on load
+reports.forEach(r=>{
+  if(r.stage==='Spotted'&&!r.escalated){
+    const age=Date.now()-new Date(r.date).getTime();
+    const window=(escConfig.hours||UNCLAIMED_HOURS)*3600000;
+    if(age>=window){const idx=reports.indexOf(r);reports[idx].stage='Unclaimed';reports[idx].escalated=true;}
+  }
+});
+save();renderFeed();renderUnclaimedAlerts();
+</script>
+</body>
+</html>
