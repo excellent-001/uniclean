@@ -167,6 +167,8 @@ main{padding:0 0 70px}
 .rcard-id{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.2);padding:2px 7px;border-radius:4px;font-weight:700}
 .rcard-desc{font-size:13px;color:var(--text);line-height:1.5;margin-bottom:7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .rcard-meta{display:flex;align-items:center;gap:9px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);flex-wrap:wrap}
+.rcard-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.rcard-actions .btn-sm{flex:1 1 calc(50% - 4px);min-width:120px}
 .unc-flag{position:absolute;top:8px;right:8px;background:var(--red);color:#fff;font-family:'DM Mono',monospace;font-size:8.5px;font-weight:700;padding:3px 8px;border-radius:var(--rF);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -666,6 +668,7 @@ let admMap = null, admCluster = null;
 let rStep = 1, rf = {};
 let admUnlocked = false;
 let gpsWatcher = null, gpsCache = null;
+let gpsStatus = {state:'wait', message:'⏳ Locking GPS — keep this screen open…'};
 let capturedPhoto = null, capturedVideoName = null;
 let claimId = null, updId = null, resId = null;
 let admData = [];       // admin always has its own fresh dataset
@@ -691,6 +694,7 @@ function sC(s){return SC[s]||SC.Spotted;}
 function stageClass(s){return s==='Progress'||s==='In Progress'?'s-Progress':'s-'+(s||'Spotted');}
 function nextId(){ctr++;localStorage.setItem('uc_ctr',ctr);return 'UC-'+String(ctr).padStart(4,'0');}
 function qid(id){return JSON.stringify(id);}
+function jsSingle(value){const s=String(value ?? '');return "'"+s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";}
 function sbErrMsg(err){if(!err)return 'Unknown error';return err.message||err.details||err.hint||err.code||String(err);}
 
 async function compressImage(dataUrl,maxW=1200,quality=0.72){
@@ -771,7 +775,8 @@ async function sbUpdate(id, updates){
 async function sbDelete(id){
   if(!SBC) return false;
   const {error} = await SBC.from('reports').delete().eq('id',id);
-  if(error){console.error('sbDelete',error);return false;}
+  if(error){console.error('sbDelete',error);window._lastSbErr=error;return false;}
+  window._lastSbErr=null;
   return true;
 }
 
@@ -864,6 +869,12 @@ function renderFeed(){
           ${r.coords?'<span>📍 '+r.coords+'</span>':''}
           ${r.claimer?'<span>🤝 '+r.claimer+'</span>':''}
           ${r.supportCount?'<span style="color:var(--blue)">+'+r.supportCount+' support</span>':''}
+          ${r.stage==='Resolved'&&r.resNote?'<span style="color:var(--green2)">✅ '+(r.resNote.length>48?r.resNote.slice(0,48)+'...':r.resNote)+'</span>':''}
+        </div>
+        <div class="rcard-actions">
+          ${r.stage==='Spotted'||r.stage==='Unclaimed'?`<button type="button" class="btn-sm" data-action="claim" data-id="${r.id}">🤝 Claim</button>`:''}
+          ${['Claimed','Progress','In Progress'].includes(r.stage)?`<button type="button" class="btn-sm" data-action="update" data-id="${r.id}">📷 Update</button><button type="button" class="btn-sm" data-action="resolve" data-id="${r.id}">✅ Resolve</button>`:''}
+          ${r.stage==='Resolved'?`<button type="button" class="btn-sm" data-action="view" data-id="${r.id}">📖 View Resolution</button>`:''}
         </div>
       </div>
     </div>`).join('');
@@ -921,6 +932,7 @@ function openDet(id){
     </div>
     ${r.desc?`<div class="det-desc">${r.desc}</div>`:''}
     ${r.resNote?`<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:var(--r12);padding:10px;margin-bottom:11px;font-size:13px;color:#1b5e20">✅ <strong>Resolution:</strong> ${r.resNote}</div>`:''}
+    ${r.resPhoto?`<div style="margin-bottom:11px"><img class="det-img" src="${r.resPhoto}" onerror="this.style.display='none'"/><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px">Resolved photo evidence</div></div>`:''}
     <div class="sec-lbl" style="margin-top:0">Lifecycle</div>
     <div class="tl">${buildTimeline(r)}</div>
     <div style="display:flex;flex-direction:column;gap:8px">
@@ -945,6 +957,7 @@ function buildTimeline(r){
           <span class="tl-t">${new Date(t.time).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
         </div>
         ${t.note?`<div class="tl-note">${t.note}</div>`:''}
+        ${t.photo?`<div style="margin-top:8px"><img src="${t.photo}" style="width:100%;max-width:240px;border-radius:12px;object-fit:cover" onerror="this.style.display='none'"></div>`:''}
         ${t.by?`<div class="tl-by">by ${t.by}</div>`:''}
       </div>
     </div>`).join('');
@@ -961,12 +974,30 @@ function openReport(){
 function startGPS(){
   if(!navigator.geolocation) return;
   if(gpsWatcher){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null;}
-  gpsWatcher=navigator.geolocation.watchPosition(
-    p=>{gpsCache={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,ts:new Date().toISOString()};
-        const gs=document.getElementById('gps-s');if(gs){gs.className='gps-bar gps-ok';gs.innerHTML='<div class="gps-dot ok"></div>📍 GPS locked · '+gpsCache.lat.toFixed(5)+', '+gpsCache.lng.toFixed(5)+(gpsCache.acc>200?' ⚠️ Weak signal':'');}},
-    ()=>{const gs=document.getElementById('gps-s');if(gs){gs.className='gps-bar gps-err';gs.innerHTML='<div class="gps-dot err"></div>⚠️ Location unavailable — please enable GPS';}},
-    {enableHighAccuracy:true,timeout:15000,maximumAge:3000}
-  );
+  gpsStatus={state:'wait', message:'⏳ Locking GPS — keep this screen open…'};
+  const geoOpts={enableHighAccuracy:true,timeout:30000,maximumAge:10000};
+  const showGPS = p=>{
+    gpsCache={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,ts:new Date().toISOString()};
+    gpsStatus={state:'ok', message:'📍 GPS locked · '+gpsCache.lat.toFixed(5)+', '+gpsCache.lng.toFixed(5)+(gpsCache.acc>200?' ⚠️ Weak signal':'')};
+    const gs=document.getElementById('gps-s');
+    if(gs){
+      gs.className='gps-bar gps-ok';
+      gs.innerHTML='<div class="gps-dot ok"></div>'+gpsStatus.message;
+    }
+  };
+  const showGPSError = err=>{
+    gpsStatus={state:'err', message:'⚠️ Location permission denied — allow Location access for this site, then tap Try Again.'};
+    if(err && err.code===2){gpsStatus.message='⚠️ Location unavailable — turn on GPS or allow location permission for this site.';}
+    if(err && err.code===1){gpsStatus.message='⚠️ Location permission denied — allow Location access for this site in your browser settings, then tap Try Again.';}
+    const gs=document.getElementById('gps-s');
+    if(gs){
+      gs.className='gps-bar gps-err';
+      gs.innerHTML='<div class="gps-dot err"></div>'+gpsStatus.message;
+    }
+    console.warn('GPS error', err);
+  };
+  navigator.geolocation.getCurrentPosition(showGPS, showGPSError, geoOpts);
+  gpsWatcher=navigator.geolocation.watchPosition(showGPS, showGPSError, geoOpts);
 }
 
 function stopGPS(){if(gpsWatcher){navigator.geolocation.clearWatch(gpsWatcher);gpsWatcher=null;}}
@@ -984,9 +1015,9 @@ function renderRStep(){
   if(rStep===1){
     title.textContent='📷 Step 1 — Capture Media';
     el.innerHTML=`${sb}
-      <div id="gps-s" class="gps-bar ${gpsCache?'gps-ok':'gps-wait'}">
-        <div class="gps-dot ${gpsCache?'ok':'wait'}"></div>
-        ${gpsCache?'📍 GPS locked · '+gpsCache.lat.toFixed(5)+', '+gpsCache.lng.toFixed(5):'⏳ Locking GPS — keep this screen open…'}
+      <div id="gps-s" class="gps-bar ${gpsCache?'gps-ok':gpsStatus.state==='err'?'gps-err':'gps-wait'}">
+        <div class="gps-dot ${gpsCache?'ok':gpsStatus.state==='err'?'err':'wait'}"></div>
+        ${gpsCache?('📍 GPS locked · '+gpsCache.lat.toFixed(5)+', '+gpsCache.lng.toFixed(5)):gpsStatus.message}
       </div>
       <div class="fg">
         <label class="fl">Photo *</label>
@@ -1050,8 +1081,8 @@ function renderRStep(){
       </div>`:`<div style="background:#ffebee;border:1.5px solid #ef9a9a;border-radius:var(--r16);padding:14px;text-align:center;margin-bottom:13px">
         <div style="font-size:28px;margin-bottom:6px">📍</div>
         <div style="font-family:'Fraunces',serif;font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px">GPS Required</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:#c62828;line-height:1.7">Location access is required to submit a report.</div>
-        <button class="btn-p" style="margin-top:10px" onclick="startGPS();setTimeout(()=>{rStep=3;renderRStep();},2000)">Try Again</button>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:#c62828;line-height:1.7">${gpsStatus.message||'Location access is required to submit a report.'}</div>
+        <button class="btn-p" style="margin-top:10px" onclick="startGPS();setTimeout(()=>{rStep=3;renderRStep();},1200)">Try Again</button>
       </div>`}
       <div style="font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);background:var(--s2);padding:9px;border-radius:var(--r8);margin-bottom:13px">GPS coordinates are locked at capture and cannot be edited. This ensures report accuracy and integrity.</div>
       <div style="display:flex;gap:8px">
@@ -1133,7 +1164,15 @@ function selSev(s,btn){rf.sev=s;document.querySelectorAll('#sev-opts .fo').forEa
 
 function step1Next(){
   if(!capturedPhoto&&!capturedVideoName){showToast('Please capture a photo or video','err');return;}
-  if(!gpsCache){showToast('GPS still locking — please wait','err');return;}
+  if(!gpsCache){
+    if(navigator.geolocation){
+      showToast(gpsStatus.message || 'Location permission denied. Allow Location access and try again.','err');
+      navigator.geolocation.getCurrentPosition(p=>{startGPS();rStep=2;renderRStep();},err=>{showToast('GPS lock failed: '+(err.message||'please enable location'),'err');},{enableHighAccuracy:true,timeout:30000,maximumAge:10000});
+    } else {
+      showToast('GPS still locking — please wait','err');
+    }
+    return;
+  }
   checkDups(()=>{rStep=2;renderRStep();});
 }
 
@@ -1557,8 +1596,14 @@ function renderAdmTable(){
     <td style="font-size:10px;color:var(--blue)">${r.claimer||'—'}</td>
     <td style="font-size:9px;white-space:nowrap">${r.dateStr||''}</td>
     <td style="font-size:9px;color:var(--muted)">${r.repEmail||r.repPhone?`${r.repEmail||''} ${r.repPhone||''}`.trim():'—'}</td>
-    <td><button class="btn-del" onclick="admDel(${qid(r.id)},${JSON.stringify(r.rname)})">Delete</button></td>
+    <td><button class="btn-del" data-id="${r.id}" data-name="${String(r.rname||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}">Delete</button></td>
   </tr>`).join('');
+  tb.querySelectorAll('button.btn-del').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      admDel(btn.getAttribute('data-id'), btn.getAttribute('data-name')||'this report');
+    });
+  });
 }
 
 function admFilt(f){
@@ -1568,18 +1613,16 @@ function admFilt(f){
 }
 
 async function admDel(id,name){
-  if(!confirm('Permanently delete Report '+name+'?\n\nThis action cannot be undone. The report will be removed from the feed, map, and database.'))return;
-  // Optimistic UI update first
+  const reportName=String(name||'this report');
+  if(!confirm('Permanently delete Report '+reportName+'?\n\nThis action cannot be undone. The report will be removed from the feed, map, and database.'))return;
+  const ok=await sbDelete(id);
   admData=admData.filter(r=>r.id!==id);
   ALL=ALL.filter(r=>r.id!==id);
   renderAdmTable();renderAdmStats();renderFeed();updateStats();
-  // Remove from map
   if(mapPins[id]&&mapCluster){mapCluster.removeLayer(mapPins[id]);delete mapPins[id];}
   if(admMapPinsRef&&admMapPinsRef[id]&&admCluster){admCluster.removeLayer(admMapPinsRef[id]);delete admMapPinsRef[id];}
-  // Delete from Supabase
-  const ok=await sbDelete(id);
-  if(!ok){showToast('Delete failed — check Supabase permissions','err');return;}
-  showToast('Report '+name+' deleted permanently');
+  if(!ok){const details=window._lastSbErr?sbErrMsg(window._lastSbErr):'Unknown issue';showToast('Removed from admin view. Supabase delete failed: '+details,'err');return;}
+  showToast('Report '+reportName+' deleted permanently');
 }
 
 let admMapPinsRef={};
@@ -1644,6 +1687,21 @@ function copySQL(){navigator.clipboard.writeText(document.getElementById('sql-bl
 
 // ═══ INIT ═══
 initDB();
+const feedListEl=document.getElementById('feed-list');
+if(feedListEl){
+  feedListEl.addEventListener('click', e=>{
+    const btn=e.target.closest('button[data-action]');
+    if(!btn) return;
+    e.stopPropagation();
+    const id=btn.dataset.id;
+    switch(btn.dataset.action){
+      case 'claim': return openClaim(id);
+      case 'update': return openUpdate(id);
+      case 'resolve': return openResolve(id);
+      case 'view': return openDet(id);
+    }
+  });
+}
 // On load: check existing local reports for expired escalation
 setTimeout(()=>{
   ALL.forEach((r,i)=>{
