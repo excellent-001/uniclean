@@ -169,6 +169,26 @@ main{padding:0 0 70px}
 .rcard-meta{display:flex;align-items:center;gap:9px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);flex-wrap:wrap}
 .rcard-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .rcard-actions .btn-sm{flex:1 1 calc(50% - 4px);min-width:120px}
+.rcard-update{margin-top:12px;background:var(--s2);border:1px solid var(--border2);border-radius:16px;padding:11px}
+.rcard-upd-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;display:block}
+.rcard-upd-note{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:9px;max-height:4.5em;overflow:hidden}
+.rcard-update-img{width:100%;height:118px;object-fit:cover;border-radius:12px}
+.clickable-media{cursor:pointer;position:relative}
+.clickable-media::after{content:'🔍';position:absolute;top:10px;right:10px;background:rgba(0,0,0,.48);color:#fff;border-radius:999px;padding:4px 6px;font-size:11px}
+.media-modal{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.media-modal.open{opacity:1;pointer-events:all}
+.mv-body{width:min(96vw,940px);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;box-shadow:0 20px 48px rgba(0,0,0,.35);position:relative}
+.mv-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #eee}
+.mv-title{font-family:'Fraunces',serif;font-size:18px;font-weight:900;color:#1B6B2A;margin-bottom:4px}
+.mv-tag{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.4}
+.mv-close{width:34px;height:34px;border-radius:50%;background:var(--s2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+.mv-media{padding:0 18px 16px}
+.mv-media img,.mv-media video{width:100%;max-height:72vh;border-radius:18px;object-fit:contain;background:#000}
+.mv-info{padding:0 18px 18px}
+.mv-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block}
+.mv-note{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:14px}
+.mv-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+.mv-meta div{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:10px}
 .unc-flag{position:absolute;top:8px;right:8px;background:var(--red);color:#fff;font-family:'DM Mono',monospace;font-size:8.5px;font-weight:700;padding:3px 8px;border-radius:var(--rF);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -248,6 +268,8 @@ main{padding:0 0 70px}
 .act-ic{font-size:24px;margin-bottom:5px}
 .act-t{font-family:'Fraunces',serif;font-size:13px;font-weight:700;color:var(--green)}
 .act-s{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--muted);margin-top:2px;line-height:1.5}
+.clickable-media{cursor:pointer;position:relative}
+.clickable-media::after{content:'🔍';position:absolute;top:10px;right:10px;background:rgba(0,0,0,.48);color:#fff;border-radius:999px;padding:4px 6px;font-size:11px}
 .cl-card{background:var(--surface);border:1px solid rgba(21,101,192,.2);border-radius:var(--r16);margin-bottom:9px;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);transition:all var(--t)}
 .cl-card:hover{border-color:rgba(21,101,192,.4)}
 .cl-card-hdr{background:rgba(21,101,192,.05);padding:9px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(21,101,192,.1)}
@@ -549,16 +571,7 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS escalation_sent_at TIMESTAMPTZ;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS reporter_email TEXT;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS reporter_phone TEXT;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS timeline JSONB DEFAULT '[]'::jsonb;
-UPDATE reports SET stage='Spotted' WHERE stage='Open' OR stage IS NULL;
 
-ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public read reports" ON reports;
-DROP POLICY IF EXISTS "Public insert reports" ON reports;
-DROP POLICY IF EXISTS "Public update reports" ON reports;
-DROP POLICY IF EXISTS "Public delete reports" ON reports;
-CREATE POLICY "Public read reports" ON reports FOR SELECT USING (true);
-CREATE POLICY "Public insert reports" ON reports FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public update reports" ON reports FOR UPDATE USING (true);
 CREATE POLICY "Public delete reports" ON reports FOR DELETE USING (true);
 
 ALTER PUBLICATION supabase_realtime ADD TABLE reports;</pre></div>
@@ -651,6 +664,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE reports;</pre></div>
   <div class="ms"><div class="mh"></div>
     <div class="mhdr"><div class="mhdr-t">⚠️ Similar Report Nearby</div><button class="mcl" onclick="closeM('mo-dup')">✕</button></div>
     <div class="mc" id="dup-c"></div>
+  </div>
+</div>
+<!-- MEDIA MODAL -->
+<div class="mo" id="mo-media" onclick="cobM(event,'mo-media')">
+  <div class="ms" style="max-width:960px;max-height:92vh;">
+    <div class="mh"></div>
+    <div class="mhdr"><div class="mhdr-t" id="media-title">Media Preview</div><button class="mcl" onclick="closeM('mo-media')">✕</button></div>
+    <div class="mc" id="media-c"></div>
   </div>
 </div>
 
@@ -850,6 +871,8 @@ function renderFeed(){
   const el=document.getElementById('feed-list');if(!el)return;
   let data = feedFilt==='All'?ALL:ALL.filter(r=>{
     if(feedFilt==='Progress') return r.stage==='Progress'||r.stage==='In Progress';
+    if(feedFilt==='Claimed') return ['Claimed','Progress','In Progress','Resolved'].includes(r.stage);
+    if(feedFilt==='Spotted') return ['Spotted','Claimed','Progress','In Progress','Resolved','Unclaimed'].includes(r.stage);
     return r.stage===feedFilt;
   });
   updateStats();
@@ -857,14 +880,27 @@ function renderFeed(){
     el.innerHTML='<div class="empty"><div class="empty-ic">🌍</div><div class="empty-t">No reports yet</div><div class="empty-s">'+(feedFilt==='All'?'Be the first in your community.':'No '+feedFilt+' reports.')+'</div></div>';
     return;
   }
-  el.innerHTML=data.map(r=>`
+  el.innerHTML=data.map(r=>{
+    const isProgress = r.stage==='Progress'||r.stage==='In Progress';
+    const lastProgress = (r.timeline||[]).slice().reverse().find(t=>t.stage==='Progress');
+    const updateNote = isProgress ? lastProgress?.note : (r.stage==='Resolved' ? r.resNote : null);
+    const updatePhoto = isProgress ? lastProgress?.photo : (r.stage==='Resolved' ? r.resPhoto : null);
+    const updateLabel = r.stage==='Resolved' ? 'Resolution' : 'Latest update';
+    const updateSection = (updateNote||updatePhoto) ? `
+          <div class="rcard-update">
+            <span class="rcard-upd-label">${updateLabel}</span>
+            ${updateNote?`<div class="rcard-upd-note">${updateNote}</div>`:''}
+            ${updatePhoto?`<img class="rcard-update-img clickable-media" src="${updatePhoto}" loading="lazy" onclick="event.stopPropagation();openMedia(${qid(r.id)},'photo',${qid(updatePhoto)},'${updateLabel}')" onerror="this.style.display='none'">`:''}
+          </div>` : '';
+    return `
     <div class="rcard" onclick="openDet(${qid(r.id)})">
       ${r.stage==='Unclaimed'?'<div class="unc-flag">⚠️ UNCLAIMED</div>':''}
-      ${r.photo?`<img class="rcard-img" src="${r.photo}" loading="lazy" onerror="this.parentNode.querySelector('.rcard-img-ph')||this.insertAdjacentHTML('afterend','<div class=rcard-img-ph>'+cL('${r.cat}').split(' ')[0]+'</div>');this.remove()">`:'<div class="rcard-img-ph">'+cL(r.cat).split(' ')[0]+'</div>'}
+      ${r.photo?`<img class="rcard-img clickable-media" src="${r.photo}" loading="lazy" onclick="event.stopPropagation();openMedia(${qid(r.id)},'photo',${qid(r.photo)},'Report photo')" onerror="this.parentNode.querySelector('.rcard-img-ph')||this.insertAdjacentHTML('afterend','<div class=rcard-img-ph>'+cL('${r.cat}').split(' ')[0]+'</div>');this.remove()">`:'<div class="rcard-img-ph">'+cL(r.cat).split(' ')[0]+'</div>'}
       <div class="rcard-body">
         <div class="rcard-row"><span class="stg ${stageClass(r.stage)}">${SL[r.stage]||r.stage}</span><span class="rcard-id">${r.rname}</span></div>
         <div class="rcard-row"><span class="ctg c-${r.cat}">${cL(r.cat)}</span><span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">${r.timeStr}·${r.dateStr}</span></div>
         <div class="rcard-desc">${r.desc||'No description'}</div>
+        ${updateSection}
         <div class="rcard-meta">
           ${r.coords?'<span>📍 '+r.coords+'</span>':''}
           ${r.claimer?'<span>🤝 '+r.claimer+'</span>':''}
@@ -877,7 +913,8 @@ function renderFeed(){
           ${r.stage==='Resolved'?`<button type="button" class="btn-sm" data-action="view" data-id="${r.id}">📖 View Resolution</button>`:''}
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function filterFeed(f,btn){
@@ -915,7 +952,8 @@ function openDet(id){
   const canResolve=canUpdate;
 
   el.innerHTML=`
-    ${r.photo?`<img class="det-img" src="${r.photo}" onerror="this.style.display='none'">`:'<div style="text-align:center;font-size:42px;margin-bottom:12px">'+cL(r.cat).split(' ')[0]+'</div>'}
+    ${r.photo?`<img class="det-img clickable-media" src="${r.photo}" onclick="openMedia(${qid(r.id)},'photo',${qid(r.photo)},'Report photo')" onerror="this.style.display='none'">`:'<div style="text-align:center;font-size:42px;margin-bottom:12px">'+cL(r.cat).split(' ')[0]+'</div>'}
+    ${r.video?`<button class="btn-s" style="margin:10px 0 0;width:100%;text-align:left;justify-content:flex-start" onclick="openMedia(${qid(r.id)},'video',${qid(r.video)},'Report video')">▶ View attached video</button>`:''}
     <div class="det-h">${cL(r.cat)}</div>
     <div style="display:flex;gap:8px;margin-bottom:11px;flex-wrap:wrap">
       <span class="stg ${stageClass(r.stage)}">${SL[r.stage]||r.stage}</span>
@@ -932,7 +970,7 @@ function openDet(id){
     </div>
     ${r.desc?`<div class="det-desc">${r.desc}</div>`:''}
     ${r.resNote?`<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:var(--r12);padding:10px;margin-bottom:11px;font-size:13px;color:#1b5e20">✅ <strong>Resolution:</strong> ${r.resNote}</div>`:''}
-    ${r.resPhoto?`<div style="margin-bottom:11px"><img class="det-img" src="${r.resPhoto}" onerror="this.style.display='none'"/><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px">Resolved photo evidence</div></div>`:''}
+    ${r.resPhoto?`<div style="margin-bottom:11px"><img class="det-img clickable-media" src="${r.resPhoto}" onclick="openMedia(${qid(r.id)},'photo',${qid(r.resPhoto)},'Resolved photo evidence')" onerror="this.style.display='none'"/><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px">Resolved photo evidence</div></div>`:''}
     <div class="sec-lbl" style="margin-top:0">Lifecycle</div>
     <div class="tl">${buildTimeline(r)}</div>
     <div style="display:flex;flex-direction:column;gap:8px">
@@ -943,6 +981,22 @@ function openDet(id){
       <button class="btn-s" onclick="closeM('mo-det')">Close</button>
     </div>`;
   openM('mo-det');
+}
+
+function openMedia(reportId,type,src,title){
+  const mediaC=document.getElementById('media-c');
+  const titleEl=document.getElementById('media-title');
+  if(!mediaC||!titleEl) return;
+  titleEl.textContent = title || 'Media Preview';
+  const isVideo = type==='video' || (typeof src==='string' && (src.match(/\.(mp4|webm|ogg)$/i) || src.startsWith('data:video')));
+  if(!src){
+    mediaC.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted)">Media unavailable</div>`;
+  } else if(isVideo){
+    mediaC.innerHTML = `<video controls autoplay playsinline style="width:100%;max-height:72vh;border-radius:18px;background:#000"><source src="${src}"></video>`;
+  } else {
+    mediaC.innerHTML = `<img src="${src}" style="width:100%;max-height:72vh;border-radius:18px;object-fit:contain">`;
+  }
+  openM('mo-media');
 }
 
 function buildTimeline(r){
@@ -957,7 +1011,7 @@ function buildTimeline(r){
           <span class="tl-t">${new Date(t.time).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>
         </div>
         ${t.note?`<div class="tl-note">${t.note}</div>`:''}
-        ${t.photo?`<div style="margin-top:8px"><img src="${t.photo}" style="width:100%;max-width:240px;border-radius:12px;object-fit:cover" onerror="this.style.display='none'"></div>`:''}
+        ${t.photo?`<div style="margin-top:8px"><img class="clickable-media" src="${t.photo}" loading="lazy" onclick="openMedia(${qid(r.id)},'photo',${qid(t.photo)},'Update photo')" style="width:100%;max-width:240px;border-radius:12px;object-fit:cover" onerror="this.style.display='none'"></div>`:''}
         ${t.by?`<div class="tl-by">by ${t.by}</div>`:''}
       </div>
     </div>`).join('');
@@ -1291,7 +1345,15 @@ function openClaim(id){
   <div class="fg"><label class="fl">Entity Type *</label>
     <div class="entity-wrap">${ENTS.map(t=>`<button class="eo" onclick="selEnt('${t}',this)">${t}</button>`).join('')}</div>
   </div>
-  <div class="fg"><label class="fl">Estimated Resolution (days)</label><input class="fi" id="cl-eta" type="number" min="1" max="60" placeholder="e.g. 3"/></div>
+  <div style="display:flex;gap:8px;align-items:flex-end">
+    <div class="fg" style="flex:1;margin-bottom:0"><label class="fl">Estimated Resolution</label><input class="fi" id="cl-eta" type="number" min="1" max="720" placeholder="e.g. 3"/></div>
+    <div class="fg" style="width:138px;margin-bottom:0"><label class="fl">Duration</label>
+      <select class="fi" id="cl-eta-unit" style="height:42px;padding:10px;border-radius:10px">
+        <option value="days" selected>Days</option>
+        <option value="hrs">Hours</option>
+      </select>
+    </div>
+  </div>
   <button class="btn-g" onclick="submitClaim()">🤝 Publicly Claim This Cleanup</button>
   <div style="margin-top:6px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center">Your name will be visible to the entire community. The record is permanent.</div>`;
   openM('mo-claim');
@@ -1300,21 +1362,35 @@ function openClaim(id){
 function selEnt(t,btn){window._claimEnt=t;document.querySelectorAll('.eo').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
 
 async function submitClaim(){
-  const name=document.getElementById('cl-name').value.trim();
+  const name=document.getElementById('cl-name')?.value.trim();
   if(!name){showToast('Please enter your name','err');return;}
   if(!window._claimEnt){showToast('Please select entity type','err');return;}
-  const now=new Date();
-  const eta=parseInt(document.getElementById('cl-eta').value)||cfg.hrs||24;
   const idx=ALL.findIndex(r=>r.id===claimId);
   if(idx<0){showToast('Report not found','err');return;}
+  const now=new Date();
+  const etaVal = parseInt(document.getElementById('cl-eta')?.value,10) || 0;
+  const etaUnit = document.getElementById('cl-eta-unit')?.value || 'days';
+  let etaDisplay = '';
+  if(etaVal>0){
+    etaDisplay = etaVal + (etaUnit==='hrs' ? ' hrs' : ' days');
+  } else {
+    etaDisplay = etaUnit==='hrs' ? '24 hrs' : '1 day';
+  }
+  const report = ALL[idx];
+  report.stage='Claimed';report.claimer=name;report.claimerEnt=window._claimEnt;report.claimedAt=now.toISOString();
+  if(!report.timeline) report.timeline=[];
+  report.timeline.push({stage:'Claimed',time:now.toISOString(),note:`Claimed by ${name} (${window._claimEnt}) · ETA: ${etaDisplay}`,by:name});
+  renderFeed();renderActions();updatePin(report);showToast('Claiming report...','');
 
-  ALL[idx].stage='Claimed';ALL[idx].claimer=name;ALL[idx].claimerEnt=window._claimEnt;ALL[idx].claimedAt=now.toISOString();
-  if(!ALL[idx].timeline)ALL[idx].timeline=[];
-  ALL[idx].timeline.push({stage:'Claimed',time:now.toISOString(),note:`Claimed by ${name} (${window._claimEnt})${eta?' · ETA: '+eta+' days':''}`,by:name});
-
-  const res=await sbUpdate(claimId,{stage:'Claimed',claim_name:name,claimer_entity:window._claimEnt,claimed_at:now.toISOString(),timeline:ALL[idx].timeline});
-  if(!res.ok){ALL[idx].stage='Spotted';ALL[idx].claimer=null;ALL[idx].claimerEnt=null;ALL[idx].claimedAt=null;ALL[idx].timeline.pop();showToast('Claim failed: '+sbErrMsg(res.error),'err');return;}
-  closeM('mo-claim');renderFeed();renderActions();updatePin(ALL[idx]);
+  const res=await sbUpdate(report.id,{stage:'Claimed',claim_name:name,claimer_entity:window._claimEnt,claimed_at:now.toISOString(),timeline:report.timeline});
+  if(!res.ok){
+    report.stage='Spotted';report.claimer=null;report.claimerEnt=null;report.claimedAt=null;
+    report.timeline.pop();
+    renderFeed();renderActions();updatePin(report);
+    showToast('Claim failed: '+sbErrMsg(res.error),'err');
+    return;
+  }
+  closeM('mo-claim');
   showToast('Cleanup claimed! You are publicly accountable 🤝','g');
 }
 
@@ -1330,7 +1406,7 @@ function openUpdate(id){
       <div class="cam-ph"><div class="ci">📷</div><div class="ct">Capture update photo</div></div><img class="cam-prev" id="upd-prev"/></div>
     </div>
     <div class="fg"><label class="fl">What is happening on site?</label><textarea class="fta" id="upd-note" placeholder="Teams on site, equipment used, progress made…" style="min-height:72px"></textarea></div>
-    <button class="btn-p" onclick="submitUpdate(${qid(id)})">Post Update</button>`);
+    <button class="btn-p" onclick="submitUpdate()">Post Update</button>`);
   document.body.appendChild(mo);setTimeout(()=>mo.classList.add('open'),10);
 }
 
@@ -1338,10 +1414,11 @@ window._updPh=null;
 function handleUpdPh(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{window._updPh=e.target.result;const p=document.getElementById('upd-prev');if(p){p.src=window._updPh;p.style.display='block';}};r.readAsDataURL(f);}
 
 async function submitUpdate(id){
+  id = id || updId;
   const note=(document.getElementById('upd-note')||{}).value?.trim()||'';
   const now=new Date();
   const idx=ALL.findIndex(r=>r.id===id);
-  if(idx<0)return;
+  if(idx<0){showToast('Report not found','err');return;}
   ALL[idx].stage='Progress';ALL[idx].updateCount=(ALL[idx].updateCount||0)+1;
   if(!ALL[idx].timeline)ALL[idx].timeline=[];
   ALL[idx].timeline.push({stage:'Progress',time:now.toISOString(),note:note||'In-progress update posted',photo:window._updPh,by:ALL[idx].claimer});
@@ -1362,7 +1439,7 @@ function openResolve(id){
     </div>
     <div class="fg"><label class="fl">Resolution Summary *</label><textarea class="fta" id="res-note" placeholder="What was done? Who was involved? What is the outcome?" style="min-height:88px"></textarea></div>
     <div class="fg"><label class="fl">Stakeholders (optional)</label><input class="fi" id="res-stake" placeholder="e.g. Lagos State Environmental Agency"/></div>
-    <button class="btn-p" onclick="submitResolve(${qid(id)})">✅ Mark as Resolved — Permanently</button>`);
+    <button class="btn-p" onclick="submitResolve()">✅ Mark as Resolved — Permanently</button>`);
   document.body.appendChild(mo);setTimeout(()=>mo.classList.add('open'),10);
 }
 
@@ -1370,18 +1447,26 @@ window._resPh=null;
 function handleResPh(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{window._resPh=e.target.result;const p=document.getElementById('res-prev');if(p){p.src=window._resPh;p.style.display='block';}};r.readAsDataURL(f);}
 
 async function submitResolve(id){
+  id = id || resId;
   const note=(document.getElementById('res-note')||{}).value?.trim()||'';
   if(!note){showToast('Please add a resolution summary','err');return;}
   const now=new Date();
-  const idx=ALL.findIndex(r=>r.id===id);if(idx<0)return;
-  ALL[idx].stage='Resolved';ALL[idx].resNote=note;ALL[idx].resPhoto=window._resPh;
+  const idx=ALL.findIndex(r=>r.id===id);if(idx<0){showToast('Report not found','err');return;}
+  const rawPhoto = window._resPh;
+  ALL[idx].stage='Resolved';ALL[idx].resNote=note;ALL[idx].resPhoto=rawPhoto;
   if(!ALL[idx].timeline)ALL[idx].timeline=[];
-  ALL[idx].timeline.push({stage:'Resolved',time:now.toISOString(),note,photo:window._resPh,by:ALL[idx].claimer});
-  const resPhoto=window._resPh?await compressImage(window._resPh,900,0.65):null;
-  const res=await sbUpdate(id,{stage:'Resolved',resolution_summary:note,resolution_photo_url:resPhoto,timeline:ALL[idx].timeline});
-  if(!res.ok){ALL[idx].stage='Progress';ALL[idx].resNote=null;ALL[idx].resPhoto=null;ALL[idx].timeline.pop();showToast('Resolution failed: '+sbErrMsg(res.error),'err');return;}
-  document.querySelectorAll('.dyn-mo').forEach(m=>m.remove());window._resPh=null;
+  ALL[idx].timeline.push({stage:'Resolved',time:now.toISOString(),note,photo:rawPhoto,by:ALL[idx].claimer});
   renderFeed();renderActions();updateStats();updatePin(ALL[idx]);
+  showToast('Resolving...','');
+  const resPhoto = rawPhoto?await compressImage(rawPhoto,900,0.65):null;
+  const res=await sbUpdate(id,{stage:'Resolved',resolution_summary:note,resolution_photo_url:resPhoto,timeline:ALL[idx].timeline});
+  document.querySelectorAll('.dyn-mo').forEach(m=>m.remove());window._resPh=null;
+  if(!res.ok){
+    ALL[idx].stage='Progress';ALL[idx].resNote=null;ALL[idx].resPhoto=null;ALL[idx].timeline.pop();
+    renderFeed();renderActions();updateStats();updatePin(ALL[idx]);
+    showToast('Resolution failed: '+sbErrMsg(res.error),'err');
+    return;
+  }
   showToast('✅ Resolved! Permanent record created.','g');
 }
 
